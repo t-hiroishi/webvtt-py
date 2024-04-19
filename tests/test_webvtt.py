@@ -20,10 +20,10 @@ class WebVTTTestCase(GenericParserTestCase):
             rmtree(OUTPUT_DIR)
 
     def test_create_caption(self):
-        caption = Caption('00:00:00.500', '00:00:07.000', ['Caption test line 1', 'Caption test line 2'])
+        caption = Caption('00:00:00.500', '00:00:07.900', ['Caption test line 1', 'Caption test line 2'])
         self.assertEqual(caption.start, '00:00:00.500')
-        self.assertEqual(caption.start_in_seconds, 0.5)
-        self.assertEqual(caption.end, '00:00:07.000')
+        self.assertEqual(caption.start_in_seconds, 0)
+        self.assertEqual(caption.end, '00:00:07.900')
         self.assertEqual(caption.end_in_seconds, 7)
         self.assertEqual(caption.lines, ['Caption test line 1', 'Caption test line 2'])
 
@@ -297,19 +297,17 @@ class WebVTTTestCase(GenericParserTestCase):
         )
 
     def test_set_styles_from_text(self):
-        style = Style()
-        style.text = '::cue(b) {\n  color: peachpuff;\n}'
+        style = Style('::cue(b) {\n  color: peachpuff;\n}')
         self.assertListEqual(
             style.lines,
             ['::cue(b) {', '  color: peachpuff;', '}']
         )
 
     def test_get_styles_as_text(self):
-        style = Style()
-        style.lines = ['::cue(b) {', '  color: peachpuff;', '}']
+        style = Style(['::cue(b) {', '  color: peachpuff;', '}'])
         self.assertEqual(
             style.text,
-            '::cue(b) {color: peachpuff;}'
+            '::cue(b) {\n  color: peachpuff;\n}'
         )
 
     def test_save_identifiers(self):
@@ -402,7 +400,7 @@ class WebVTTTestCase(GenericParserTestCase):
             Caption('00:00:00.500', '00:00:07.000', ['Caption test line 1', 'Caption test line 2']),
             Caption('00:00:08.000', '00:00:15.000', ['Caption test line 3', 'Caption test line 4']),
         ]
-        expected_content = textwrap.dedent("""\
+        expected_content = textwrap.dedent("""
                 WEBVTT
 
                 00:00:00.500 --> 00:00:07.000

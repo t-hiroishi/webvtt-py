@@ -32,21 +32,13 @@ class SBVParserTestCase(GenericParserTestCase):
         )
 
     def test_sbv_missing_timeframe_line(self):
-        self.assertRaises(
-            webvtt.errors.MalformedCaptionError,
-            webvtt.from_sbv,
-            self._get_file('missing_timeframe.sbv')
-        )
+        self.assertEqual(len(webvtt.from_sbv(self._get_file('missing_timeframe.sbv')).captions), 4)
 
     def test_sbv_missing_caption_text(self):
         self.assertTrue(webvtt.from_sbv(self._get_file('missing_caption_text.sbv')).captions)
 
     def test_sbv_invalid_timestamp(self):
-        self.assertRaises(
-            webvtt.errors.MalformedCaptionError,
-            webvtt.from_sbv,
-            self._get_file('invalid_timeframe.sbv')
-        )
+        self.assertEqual(len(webvtt.from_sbv(self._get_file('invalid_timeframe.sbv')).captions), 4)
 
     def test_sbv_timestamps_format(self):
         vtt = webvtt.from_sbv(self._get_file('sample.sbv'))
@@ -55,8 +47,8 @@ class SBVParserTestCase(GenericParserTestCase):
 
     def test_sbv_timestamps_in_seconds(self):
         vtt = webvtt.from_sbv(self._get_file('sample.sbv'))
-        self.assertEqual(vtt.captions[1].start_in_seconds, 11.378)
-        self.assertEqual(vtt.captions[1].end_in_seconds, 12.305)
+        self.assertEqual(vtt.captions[1].start_in_seconds, 11)
+        self.assertEqual(vtt.captions[1].end_in_seconds, 12)
 
     def test_sbv_get_caption_text(self):
         vtt = webvtt.from_sbv(self._get_file('sample.sbv'))

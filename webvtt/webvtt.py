@@ -1,13 +1,15 @@
 import os
+import typing
 
 from .parsers import WebVTTParser, SRTParser, SBVParser
 from .writers import WebVTTWriter, SRTWriter
+from .structures import Caption, Style
 from .errors import MissingFilenameError
 
 __all__ = ['WebVTT']
 
 
-class WebVTT(object):
+class WebVTT:
     """
     Parse captions in WebVTT format and also from other formats like SRT.
 
@@ -45,28 +47,31 @@ class WebVTT(object):
     @classmethod
     def from_srt(cls, file):
         """Reads captions from a file in SubRip format."""
-        parser = SRTParser().read(file)
-        return cls(file=file, captions=parser.captions)
+        return cls(file=file, captions=SRTParser.read(file))
 
     @classmethod
     def from_sbv(cls, file):
         """Reads captions from a file in YouTube SBV format."""
-        parser = SBVParser().read(file)
-        return cls(file=file, captions=parser.captions)
+        return cls(file=file, captions=SBVParser.read(file))
 
     @classmethod
     def read(cls, file):
         """Reads a WebVTT captions file."""
-        parser = WebVTTParser().read(file)
-        return cls(file=file, captions=parser.captions, styles=parser.styles)
+        items = WebVTTParser.read(file)
+        return cls(file=file,
+                   captions=[it for it in items if isinstance(it, Caption)],
+                   styles=[it for it in items if isinstance(it, Style)]
+                   )
 
     @classmethod
-    def read_buffer(cls, buffer):
+    def read_buffer(cls, buffer: typing.IO[str]):
         """Reads a WebVTT captions from a file-like object.
         Such file-like object may be the return of an io.open call,
         io.StringIO object, tempfile.TemporaryFile object, etc."""
-        parser = WebVTTParser().read_from_buffer(buffer)
-        return cls(captions=parser.captions, styles=parser.styles)
+        items = WebVTTParser.read_from_buffer(buffer)
+        return cls(captions=[it for it in items if isinstance(it, Caption)],
+                   styles=[it for it in items if isinstance(it, Style)]
+                   )
 
     def _get_output_file(self, output, extension='vtt'):
         if not output:

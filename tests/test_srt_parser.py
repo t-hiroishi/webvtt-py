@@ -30,11 +30,7 @@ class SRTParserTestCase(GenericParserTestCase):
         self.assertTrue(webvtt.from_srt(self._get_file('sample.srt')).captions)
 
     def test_srt_missing_timeframe_line(self):
-        self.assertRaises(
-            webvtt.errors.MalformedCaptionError,
-            webvtt.from_srt,
-            self._get_file('missing_timeframe.srt')
-        )
+        self.assertEqual(len(webvtt.from_srt(self._get_file('missing_timeframe.srt')).captions), 4)
 
     def test_srt_empty_caption_text(self):
         self.assertTrue(webvtt.from_srt(self._get_file('missing_caption_text.srt')).captions)
@@ -44,11 +40,7 @@ class SRTParserTestCase(GenericParserTestCase):
         self.assertEqual(len(captions), 4)
 
     def test_srt_invalid_timestamp(self):
-        self.assertRaises(
-            webvtt.errors.MalformedCaptionError,
-            webvtt.from_srt,
-            self._get_file('invalid_timeframe.srt')
-        )
+        self.assertEqual(len(webvtt.from_srt(self._get_file('invalid_timeframe.srt')).captions), 4)
 
     def test_srt_timestamps_format(self):
         vtt = webvtt.from_srt(self._get_file('sample.srt'))
@@ -57,7 +49,7 @@ class SRTParserTestCase(GenericParserTestCase):
 
     def test_srt_parse_get_caption_data(self):
         vtt = webvtt.from_srt(self._get_file('one_caption.srt'))
-        self.assertEqual(vtt.captions[0].start_in_seconds, 0.5)
+        self.assertEqual(vtt.captions[0].start_in_seconds, 0)
         self.assertEqual(vtt.captions[0].start, '00:00:00.500')
         self.assertEqual(vtt.captions[0].end_in_seconds, 7)
         self.assertEqual(vtt.captions[0].end, '00:00:07.000')

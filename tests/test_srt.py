@@ -32,4 +32,4 @@ class SRTCaptionsTestCase(GenericParserTestCase):
         with open(os.path.join(OUTPUT_DIR, 'sample_converted.srt'), 'r', encoding='utf-8') as f:
             converted = f.read()
 
-        self.assertEqual(original.strip(), converted.strip())
+        self.assertEqual(original, converted)

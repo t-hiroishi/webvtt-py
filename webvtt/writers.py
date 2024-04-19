@@ -1,40 +1,40 @@
+import typing
 
-class WebVTTWriter(object):
+from .structures import Caption
 
-    def write(self, captions, f):
+
+class WebVTTWriter:
+
+    def write(self, captions: typing.Iterable[Caption], f: typing.IO[str]):
         f.write(self.webvtt_content(captions))
 
-    def webvtt_content(self, captions):
+    def webvtt_content(self, captions: typing.Iterable[Caption]) -> str:
         """
         Return captions content with webvtt formatting.
         """
-        output = ["WEBVTT"]
+        output = ['WEBVTT']
         for caption in captions:
-            output.append("")
-            if caption.identifier:
-                output.append(caption.identifier)
-            output.append('{} --> {}'.format(caption.start, caption.end))
-            output.extend(caption.lines)
+            output.extend([
+                '',
+                *(identifier for identifier in {caption.identifier} if identifier),
+                f'{caption.start} --> {caption.end}',
+                *caption.lines
+            ])
         return '\n'.join(output)
 
 
-class SRTWriter(object):
+class SRTWriter:
 
-    def write(self, captions, f):
-        for line_number, caption in enumerate(captions, start=1):
-            f.write('{}\n'.format(line_number))
-            f.write('{} --> {}\n'.format(self._to_srt_timestamp(caption.start_in_seconds),
-                                         self._to_srt_timestamp(caption.end_in_seconds)))
-            f.writelines(['{}\n'.format(l) for l in caption.lines])
-            f.write('\n')
-
-    def _to_srt_timestamp(self, total_seconds):
-        hours = int(total_seconds / 3600)
-        minutes = int(total_seconds / 60 - hours * 60)
-        seconds = int(total_seconds - hours * 3600 - minutes * 60)
-        milliseconds = round((total_seconds - seconds - hours * 3600 - minutes * 60)*1000)
-
-        return '{:02d}:{:02d}:{:02d},{:03d}'.format(hours, minutes, seconds, milliseconds)
+    def write(self, captions, f: typing.IO[str]):
+        output = []
+        for index, caption in enumerate(captions, start=1):
+            output.extend([
+                f'{index}',
+                '{} --> {}'.format(*map(lambda x: x.replace('.', ','), (caption.start, caption.end))),
+                *caption.lines,
+                ''
+                ])
+        f.write('\n'.join(output).rstrip())
 
 
 class SBVWriter(object):
