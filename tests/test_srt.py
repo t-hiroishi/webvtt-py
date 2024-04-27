@@ -1,5 +1,4 @@
 import os
-import unittest
 from shutil import rmtree, copy
 
 import webvtt

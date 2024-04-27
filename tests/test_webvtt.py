@@ -15,12 +15,28 @@ OUTPUT_DIR = os.path.join(BASE_DIR, 'output')
 
 class WebVTTTestCase(GenericParserTestCase):
 
+    def setUp(self):
+        os.makedirs(OUTPUT_DIR)
+
     def tearDown(self):
-        if os.path.exists(OUTPUT_DIR):
-            rmtree(OUTPUT_DIR)
+        rmtree(OUTPUT_DIR)
 
     def test_create_caption(self):
-        caption = Caption('00:00:00.500', '00:00:07.900', ['Caption test line 1', 'Caption test line 2'])
+        caption = Caption(start='00:00:00.500',
+                          end='00:00:07.900',
+                          text=['Caption test line 1', 'Caption test line 2']
+                          )
+        self.assertEqual(caption.start, '00:00:00.500')
+        self.assertEqual(caption.start_in_seconds, 0)
+        self.assertEqual(caption.end, '00:00:07.900')
+        self.assertEqual(caption.end_in_seconds, 7)
+        self.assertEqual(caption.lines, ['Caption test line 1', 'Caption test line 2'])
+
+    def test_create_caption_with_text(self):
+        caption = Caption(start='00:00:00.500',
+                          end='00:00:07.900',
+                          text='Caption test line 1\nCaption test line 2'
+                          )
         self.assertEqual(caption.start, '00:00:00.500')
         self.assertEqual(caption.start_in_seconds, 0)
         self.assertEqual(caption.end, '00:00:07.900')
@@ -28,58 +44,58 @@ class WebVTTTestCase(GenericParserTestCase):
         self.assertEqual(caption.lines, ['Caption test line 1', 'Caption test line 2'])
 
     def test_write_captions(self):
-        os.makedirs(OUTPUT_DIR)
         copy(self._get_file('one_caption.vtt'), OUTPUT_DIR)
 
         out = io.StringIO()
         vtt = webvtt.read(os.path.join(OUTPUT_DIR, 'one_caption.vtt'))
-        new_caption = Caption('00:00:07.000', '00:00:11.890', ['New caption text line1', 'New caption text line2'])
+        new_caption = Caption(start='00:00:07.000',
+                              end='00:00:11.890',
+                              text=['New caption text line1', 'New caption text line2']
+                              )
         vtt.captions.append(new_caption)
         vtt.write(out)
 
         out.seek(0)
-        lines = [line.rstrip() for line in out.readlines()]
 
-        expected_lines = [
-            'WEBVTT',
-            '',
-            '00:00:00.500 --> 00:00:07.000',
-            'Caption text #1',
-            '',
-            '00:00:07.000 --> 00:00:11.890',
-            'New caption text line1',
-            'New caption text line2'
-        ]
-
-        self.assertListEqual(lines, expected_lines)
+        self.assertListEqual([line for line in out],
+                             [
+                                 'WEBVTT\n',
+                                 '\n',
+                                 '00:00:00.500 --> 00:00:07.000\n',
+                                 'Caption text #1\n',
+                                 '\n',
+                                 '00:00:07.000 --> 00:00:11.890\n',
+                                 'New caption text line1\n',
+                                 'New caption text line2'
+                             ]
+                             )
 
     def test_save_captions(self):
-        os.makedirs(OUTPUT_DIR)
         copy(self._get_file('one_caption.vtt'), OUTPUT_DIR)
 
         vtt = webvtt.read(os.path.join(OUTPUT_DIR, 'one_caption.vtt'))
-        new_caption = Caption('00:00:07.000', '00:00:11.890', ['New caption text line1', 'New caption text line2'])
+        new_caption = Caption(start='00:00:07.000',
+                              end='00:00:11.890',
+                              text=['New caption text line1', 'New caption text line2']
+                              )
         vtt.captions.append(new_caption)
         vtt.save()
 
         with open(os.path.join(OUTPUT_DIR, 'one_caption.vtt'), 'r', encoding='utf-8') as f:
-            lines = [line.rstrip() for line in f.readlines()]
-
-        expected_lines = [
-            'WEBVTT',
-            '',
-            '00:00:00.500 --> 00:00:07.000',
-            'Caption text #1',
-            '',
-            '00:00:07.000 --> 00:00:11.890',
-            'New caption text line1',
-            'New caption text line2'
-        ]
-
-        self.assertListEqual(lines, expected_lines)
+            self.assertListEqual([line for line in f],
+                                 [
+                                     'WEBVTT\n',
+                                     '\n',
+                                     '00:00:00.500 --> 00:00:07.000\n',
+                                     'Caption text #1\n',
+                                     '\n',
+                                     '00:00:07.000 --> 00:00:11.890\n',
+                                     'New caption text line1\n',
+                                     'New caption text line2'
+                                 ]
+                                 )
 
     def test_srt_conversion(self):
-        os.makedirs(OUTPUT_DIR)
         copy(self._get_file('one_caption.srt'), OUTPUT_DIR)
 
         vtt = webvtt.from_srt(os.path.join(OUTPUT_DIR, 'one_caption.srt'))
@@ -88,19 +104,16 @@ class WebVTTTestCase(GenericParserTestCase):
         self.assertTrue(os.path.exists(os.path.join(OUTPUT_DIR, 'one_caption.vtt')))
 
         with open(os.path.join(OUTPUT_DIR, 'one_caption.vtt'), 'r', encoding='utf-8') as f:
-            lines = [line.rstrip() for line in f.readlines()]
-
-        expected_lines = [
-            'WEBVTT',
-            '',
-            '00:00:00.500 --> 00:00:07.000',
-            'Caption text #1',
-        ]
-
-        self.assertListEqual(lines, expected_lines)
+            self.assertListEqual([line for line in f],
+                                 [
+                                     'WEBVTT\n',
+                                     '\n',
+                                     '00:00:00.500 --> 00:00:07.000\n',
+                                     'Caption text #1',
+                                 ]
+                                 )
 
     def test_sbv_conversion(self):
-        os.makedirs(OUTPUT_DIR)
         copy(self._get_file('two_captions.sbv'), OUTPUT_DIR)
 
         vtt = webvtt.from_sbv(os.path.join(OUTPUT_DIR, 'two_captions.sbv'))
@@ -109,20 +122,18 @@ class WebVTTTestCase(GenericParserTestCase):
         self.assertTrue(os.path.exists(os.path.join(OUTPUT_DIR, 'two_captions.vtt')))
 
         with open(os.path.join(OUTPUT_DIR, 'two_captions.vtt'), 'r', encoding='utf-8') as f:
-            lines = [line.rstrip() for line in f.readlines()]
-
-        expected_lines = [
-            'WEBVTT',
-            '',
-            '00:00:00.378 --> 00:00:11.378',
-            'Caption text #1',
-            '',
-            '00:00:11.378 --> 00:00:12.305',
-            'Caption text #2 (line 1)',
-            'Caption text #2 (line 2)',
-        ]
-
-        self.assertListEqual(lines, expected_lines)
+            self.assertListEqual([line for line in f],
+                                 [
+                                     'WEBVTT\n',
+                                     '\n',
+                                     '00:00:00.378 --> 00:00:11.378\n',
+                                     'Caption text #1\n',
+                                     '\n',
+                                     '00:00:11.378 --> 00:00:12.305\n',
+                                     'Caption text #2 (line 1)\n',
+                                     'Caption text #2 (line 2)',
+                                 ]
+                                 )
 
     def test_save_to_other_location(self):
         target_path = os.path.join(OUTPUT_DIR, 'test_folder')
@@ -226,16 +237,15 @@ class WebVTTTestCase(GenericParserTestCase):
 
     def test_read_file_buffer(self):
         with open(self._get_file('sample.vtt'), 'r', encoding='utf-8') as f:
-            vtt = webvtt.read_buffer(f)
+            vtt = webvtt.from_buffer(f)
             self.assertIsInstance(vtt.captions, list)
 
     def test_read_memory_buffer(self):
-        payload = ''
         with open(self._get_file('sample.vtt'), 'r', encoding='utf-8') as f:
             payload = f.read()
 
         buffer = io.StringIO(payload)
-        vtt = webvtt.read_buffer(buffer)
+        vtt = webvtt.from_buffer(buffer)
         self.assertIsInstance(vtt.captions, list)
 
     def test_read_memory_buffer_carriage_return(self):
@@ -252,30 +262,19 @@ class WebVTTTestCase(GenericParserTestCase):
             00:00:11.890 --> 00:00:16.320\r
             Caption text #3\r
         '''))
-        vtt = webvtt.read_buffer(buffer)
+        vtt = webvtt.from_buffer(buffer)
         self.assertEqual(len(vtt.captions), 3)
 
     def test_read_malformed_buffer(self):
-        malformed_payloads = ['', 'MOCK MELFORMED CONTENT']
+        malformed_payloads = ['', 'MOCK MALFORMED CONTENT']
         for payload in malformed_payloads:
             buffer = io.StringIO(payload)
             with self.assertRaises(MalformedFileError):
-                webvtt.read_buffer(buffer)
-
+                webvtt.from_buffer(buffer)
 
     def test_captions(self):
         vtt = webvtt.read(self._get_file('sample.vtt'))
         self.assertIsInstance(vtt.captions, list)
-
-    def test_captions_prevent_write(self):
-        vtt = webvtt.read(self._get_file('sample.vtt'))
-        self.assertRaises(
-            AttributeError,
-            setattr,
-            vtt,
-            'captions',
-            []
-        )
 
     def test_sequence_iteration(self):
         vtt = webvtt.read(self._get_file('sample.vtt'))
@@ -311,7 +310,6 @@ class WebVTTTestCase(GenericParserTestCase):
         )
 
     def test_save_identifiers(self):
-        os.makedirs(OUTPUT_DIR)
         copy(self._get_file('using_identifiers.vtt'), OUTPUT_DIR)
 
         vtt = webvtt.read(os.path.join(OUTPUT_DIR, 'using_identifiers.vtt'))
@@ -347,7 +345,6 @@ class WebVTTTestCase(GenericParserTestCase):
         self.assertListEqual(lines, expected_lines)
 
     def test_save_updated_identifiers(self):
-        os.makedirs(OUTPUT_DIR)
         copy(self._get_file('using_identifiers.vtt'), OUTPUT_DIR)
 
         vtt = webvtt.read(os.path.join(OUTPUT_DIR, 'using_identifiers.vtt'))
@@ -401,15 +398,15 @@ class WebVTTTestCase(GenericParserTestCase):
             Caption('00:00:08.000', '00:00:15.000', ['Caption test line 3', 'Caption test line 4']),
         ]
         expected_content = textwrap.dedent("""
-                WEBVTT
+            WEBVTT
 
-                00:00:00.500 --> 00:00:07.000
-                Caption test line 1
-                Caption test line 2
-                   
-                00:00:08.000 --> 00:00:15.000
-                Caption test line 3
-                Caption test line 4
-                """).strip()
+            00:00:00.500 --> 00:00:07.000
+            Caption test line 1
+            Caption test line 2
+
+            00:00:08.000 --> 00:00:15.000
+            Caption test line 3
+            Caption test line 4
+            """).strip()
         vtt = webvtt.WebVTT(captions=captions)
         self.assertEqual(expected_content, vtt.content)

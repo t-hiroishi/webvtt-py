@@ -1,17 +1,13 @@
 import os
 from math import ceil, floor
 
-from .errors import InvalidCaptionsError
 from .webvtt import WebVTT
-from .structures import Caption
 
 MPEGTS = 900000
 SECONDS = 10  # default number of seconds per segment
 
-__all__ = ['WebVTTSegmenter']
 
-
-class WebVTTSegmenter(object):
+class WebVTTSegmenter:
     """
     Provides segmentation of WebVTT captions for HTTP Live Streaming (HLS).
     """
@@ -21,15 +17,6 @@ class WebVTTSegmenter(object):
         self._seconds = 0
         self._mpegts = 0
         self._segments = []
-
-    def _validate_webvtt(self, webvtt):
-        # Validates that the captions is a list and all the captions are instances of Caption.
-        if not isinstance(webvtt, WebVTT):
-            return False
-        for c in webvtt.captions:
-            if not isinstance(c, Caption):
-                return False
-        return True
 
     def _slice_segments(self, captions):
         self._segments = [[] for _ in range(self.total_segments)]
@@ -46,15 +33,19 @@ class WebVTTSegmenter(object):
 
     def _write_segments(self):
         for index in range(self.total_segments):
-            segment_file = os.path.join(self._output_folder, 'fileSequence{}.webvtt'.format(index))
+            segment_file = os.path.join(self._output_folder,
+                                        f'fileSequence{index}.webvtt'
+                                        )
 
             with open(segment_file, 'w', encoding='utf-8') as f:
                 f.write('WEBVTT\n')
-                f.write('X-TIMESTAMP-MAP=MPEGTS:{},LOCAL:00:00:00.000\n'.format(self._mpegts))
+                f.write(f'X-TIMESTAMP-MAP=MPEGTS:{self._mpegts},'
+                        'LOCAL:00:00:00.000\n'
+                        )
 
                 for caption in self.segments[index]:
                     f.write('\n{} --> {}\n'.format(caption.start, caption.end))
-                    f.writelines(['{}\n'.format(l) for l in caption.lines])
+                    f.writelines(f'{line}\n' for line in caption.lines)
 
     def _write_manifest(self):
         manifest_file = os.path.join(self._output_folder, 'prog_index.m3u8')
@@ -70,18 +61,21 @@ class WebVTTSegmenter(object):
 
             f.write('#EXT-X-ENDLIST\n')
 
-    def segment(self, webvtt, output='', seconds=SECONDS, mpegts=MPEGTS):
-        """Segments the captions based on a number of seconds."""
-        if isinstance(webvtt, str):
-            # if a string is supplied we parse the file
-            captions = WebVTT().read(webvtt).captions
-        elif not self._validate_webvtt(webvtt):
-            raise InvalidCaptionsError('The captions provided are invalid')
-        else:
-            # we expect to have a webvtt object
-            captions = webvtt.captions
+    def segment(
+            self,
+            webvtt_path: str,
+            output: str,
+            seconds: int = SECONDS,
+            mpegts: int = MPEGTS
+            ):
+        """Segment the WebVTT based on a number of seconds."""
+        captions = WebVTT.read(webvtt_path).captions
 
-        self._total_segments = 0 if not captions else int(ceil(captions[-1].end_in_seconds / seconds))
+        self._total_segments = (
+            0
+            if not captions else
+            int(ceil(captions[-1].end_in_seconds / seconds))
+            )
         self._output_folder = output
         self._seconds = seconds
         self._mpegts = mpegts

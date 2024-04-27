@@ -1,27 +1,14 @@
 import re
 import typing
 from datetime import datetime, time
-from abc import ABC, abstractmethod
 
 from .errors import MalformedCaptionError
 
-__all__ = ['Caption', 'Style']
 
-
-class BlockItem(ABC):
-    @classmethod
-    @abstractmethod
-    def is_valid(cls, lines: typing.Sequence[str]) -> bool:
-        raise NotImplementedError
-
-    @classmethod
-    @abstractmethod
-    def from_lines(cls, lines: typing.Sequence[str]) -> 'BlockItem':
-        raise NotImplementedError
-
-
-class WebVTTCueBlock(BlockItem):
-    CUE_TIMINGS_PATTERN = re.compile(r'\s*((?:\d+:)?\d{2}:\d{2}.\d{3})\s*-->\s*((?:\d+:)?\d{2}:\d{2}.\d{3})')
+class WebVTTCueBlock:
+    CUE_TIMINGS_PATTERN = re.compile(
+        r'\s*((?:\d+:)?\d{2}:\d{2}.\d{3})\s*-->\s*((?:\d+:)?\d{2}:\d{2}.\d{3})'
+        )
 
     def __init__(self, identifier, start, end, payload):
         self.identifier = identifier
@@ -47,6 +34,7 @@ class WebVTTCueBlock(BlockItem):
 
     @classmethod
     def from_lines(cls, lines: typing.Sequence[str]) -> 'WebVTTCueBlock':
+
         identifier = None
         start = None
         end = None
@@ -65,10 +53,10 @@ class WebVTTCueBlock(BlockItem):
         return cls(identifier, start, end, payload)
 
 
-class WebVTTCommentBlock(BlockItem):
+class WebVTTCommentBlock:
     COMMENT_PATTERN = re.compile(r'NOTE\s(.*?)\Z', re.DOTALL)
 
-    def __init__(self, text):
+    def __init__(self, text: str):
         self.text = text
 
     @classmethod
@@ -81,7 +69,7 @@ class WebVTTCommentBlock(BlockItem):
         return cls(text=match.group(1).strip() if match else '')
 
 
-class WebVTTStyleBlock(BlockItem):
+class WebVTTStyleBlock:
     STYLE_PATTERN = re.compile(r'STYLE\s(.*?)\Z', re.DOTALL)
 
     def __init__(self, text):
@@ -97,10 +85,18 @@ class WebVTTStyleBlock(BlockItem):
         return cls(text=match.group(1).strip() if match else '')
 
 
-class SRTCueBlock(BlockItem):
-    CUE_TIMINGS_PATTERN = re.compile(r'\s*(\d+:\d{2}:\d{2},\d{3})\s*-->\s*(\d+:\d{2}:\d{2},\d{3})')
+class SRTCueBlock:
+    CUE_TIMINGS_PATTERN = re.compile(
+        r'\s*(\d+:\d{2}:\d{2},\d{3})\s*-->\s*(\d+:\d{2}:\d{2},\d{3})'
+        )
 
-    def __init__(self, index, start, end, payload):
+    def __init__(
+            self,
+            index: str,
+            start: time,
+            end: time,
+            payload: typing.Sequence[str]
+    ):
         self.index = index
         self.start = start
         self.end = end
@@ -116,9 +112,11 @@ class SRTCueBlock(BlockItem):
 
     @classmethod
     def from_lines(cls, lines: typing.Sequence[str]) -> 'SRTCueBlock':
+
         index = lines[0]
 
         match = re.match(cls.CUE_TIMINGS_PATTERN, lines[1])
+        assert match is not None
         start, end = map(lambda x: datetime.strptime(x, '%H:%M:%S,%f').time(),
                          (match.group(1), match.group(2))
                          )
@@ -128,10 +126,17 @@ class SRTCueBlock(BlockItem):
         return cls(index, start, end, payload)
 
 
-class SBVCueBlock(BlockItem):
-    CUE_TIMINGS_PATTERN = re.compile(r'\s*(\d+:\d{2}:\d{2}.\d{3}),(\d+:\d{2}:\d{2}.\d{3})')
+class SBVCueBlock:
+    CUE_TIMINGS_PATTERN = re.compile(
+        r'\s*(\d+:\d{2}:\d{2}.\d{3}),(\d+:\d{2}:\d{2}.\d{3})'
+        )
 
-    def __init__(self, start, end, payload):
+    def __init__(
+            self,
+            start: time,
+            end: time,
+            payload: typing.Sequence[str]
+            ):
         self.start = start
         self.end = end
         self.payload = payload
@@ -147,6 +152,7 @@ class SBVCueBlock(BlockItem):
     @classmethod
     def from_lines(cls, lines: typing.Sequence[str]) -> 'SBVCueBlock':
         match = re.match(cls.CUE_TIMINGS_PATTERN, lines[0])
+        assert match is not None
         start, end = map(lambda x: datetime.strptime(x, '%H:%M:%S.%f').time(),
                          (match.group(1), match.group(2))
                          )
@@ -162,14 +168,21 @@ class Caption:
     def __init__(self,
                  start: typing.Optional[typing.Union[str, time]] = None,
                  end: typing.Optional[typing.Union[str, time]] = None,
-                 text: typing.Optional[typing.Union[str, typing.List[str]]] = None,
+                 text: typing.Optional[typing.Union[str,
+                                                    typing.Sequence[str]
+                                                    ]] = None,
                  identifier: typing.Optional[str] = None
                  ):
+        text = text or []
         self.start = start or time()
         self.end = end or time()
         self.identifier = identifier
-        self.lines = text.splitlines() if isinstance(text, str) else text or []
-        self.comments = []
+        self.lines = (text.splitlines()
+                      if isinstance(text, str)
+                      else
+                      list(text)
+                      )
+        self.comments: typing.List[str] = []
 
     def __repr__(self):
         cleaned_text = self.text.replace('\n', '\\n')
@@ -183,6 +196,12 @@ class Caption:
     def __str__(self):
         cleaned_text = self.text.replace('\n', '\\n')
         return f'{self.start} {self.end} {cleaned_text}'
+
+    def __eq__(self, other):
+        return (self.start == other.start and
+                self.end == other.end and
+                self.raw_text == other.raw_text
+                )
 
     def add_line(self, line: str):
         self.lines.append(line)
@@ -227,7 +246,9 @@ class Caption:
     @text.setter
     def text(self, value: str):
         if not isinstance(value, str):
-            raise AttributeError('String value expected but received {}.'.format(type(value)))
+            raise AttributeError(
+                f'String value expected but received {value}.'
+                )
 
         self.lines = value.splitlines()
 
@@ -261,7 +282,7 @@ class Caption:
 class Style:
     def __init__(self, text: typing.Union[str, typing.List[str]]):
         self.lines = text.splitlines() if isinstance(text, str) else text
-        self.comments = []
+        self.comments: typing.List[str] = []
 
     @property
     def text(self):

@@ -1,5 +1,3 @@
-import os
-import codecs
 import typing
 from abc import ABC, abstractmethod
 
@@ -14,51 +12,19 @@ from .structures import (Style,
                          )
 
 
-class BaseParser(ABC):
-    @classmethod
-    def read(cls, file):
-        """Reads the captions file."""
-        return cls._parse(cls._get_content_from_file(file_path=file))
+class Parser(ABC):
 
     @classmethod
-    def read_from_buffer(cls, buffer):
-        return cls._parse(cls._read_content_lines(buffer))
-
-    @classmethod
-    def _parse(cls, content):
-        if not cls.validate(content):
+    def parse(cls, lines: typing.Sequence[str]):
+        if not cls.validate(lines):
             raise MalformedFileError('Invalid format')
-        return cls.parse(content)
-
-    @classmethod
-    def _get_content_from_file(cls, file_path):
-        encoding = cls._read_file_encoding(file_path)
-        with open(file_path, encoding=encoding) as f:
-            return cls._read_content_lines(f)
+        return cls.parse_content(lines)
 
     @staticmethod
-    def _read_file_encoding(file_path):
-        first_bytes = min(32, os.path.getsize(file_path))
-        with open(file_path, 'rb') as f:
-            raw = f.read(first_bytes)
-
-        if raw.startswith(codecs.BOM_UTF8):
-            return 'utf-8-sig'
-        else:
-            return 'utf-8'
-
-    @staticmethod
-    def _read_content_lines(file_obj: typing.IO[str]):
-
-        lines = [line.rstrip('\n\r') for line in file_obj.readlines()]
-
-        if not lines:
-            raise MalformedFileError('The file is empty.')
-
-        return lines
-
-    @staticmethod
-    def iter_blocks_of_lines(lines) -> typing.Generator[typing.List[str], None, None]:
+    def iter_blocks_of_lines(lines) -> typing.Generator[typing.List[str],
+                                                        None,
+                                                        None
+                                                        ]:
         current_text_block = []
 
         for line in lines:
@@ -78,23 +44,25 @@ class BaseParser(ABC):
 
     @classmethod
     @abstractmethod
-    def parse(cls, lines: typing.Sequence[str]):
+    def parse_content(cls, lines: typing.Sequence[str]):
         raise NotImplementedError
 
 
-class WebVTTParser(BaseParser):
+class WebVTTParser(Parser):
     """
     Web Video Text Track parser.
     """
 
     @classmethod
     def validate(cls, lines: typing.Sequence[str]) -> bool:
-        return lines[0].startswith('WEBVTT')
+        return bool(lines and lines[0].startswith('WEBVTT'))
 
     @classmethod
-    def parse(cls, lines: typing.Sequence[str]) -> typing.List[typing.Union[Style, Caption]]:
-        items = []
-        comments = []
+    def parse_content(cls,
+                      lines: typing.Sequence[str]
+                      ) -> typing.List[typing.Union[Style, Caption]]:
+        items: typing.List[typing.Union[Caption, Style]] = []
+        comments: typing.List[WebVTTCommentBlock] = []
 
         for block_lines in cls.iter_blocks_of_lines(lines):
             if WebVTTCueBlock.is_valid(block_lines):
@@ -114,7 +82,7 @@ class WebVTTParser(BaseParser):
                 comments.append(WebVTTCommentBlock.from_lines(block_lines))
 
             elif WebVTTStyleBlock.is_valid(block_lines):
-                style = Style(text=WebVTTStyleBlock.from_lines(block_lines).text)
+                style = Style(WebVTTStyleBlock.from_lines(block_lines).text)
                 if comments:
                     style.comments = [comment.text for comment in comments]
                     comments = []
@@ -126,18 +94,26 @@ class WebVTTParser(BaseParser):
         return items
 
 
-class SRTParser(BaseParser):
+class SRTParser(Parser):
     """
     SubRip SRT parser.
     """
 
     @classmethod
     def validate(cls, lines: typing.Sequence[str]) -> bool:
-        return len(lines) >= 3 and lines[0].isdigit() and '-->' in lines[1] and lines[2].strip()
+        return bool(
+            len(lines) >= 3 and
+            lines[0].isdigit() and
+            '-->' in lines[1] and
+            lines[2].strip()
+            )
 
     @classmethod
-    def parse(cls, lines: typing.Sequence[str]) -> typing.List[Caption]:
-        captions = []
+    def parse_content(
+            cls,
+            lines: typing.Sequence[str]
+            ) -> typing.List[Caption]:
+        captions: typing.List[Caption] = []
 
         for block_lines in cls.iter_blocks_of_lines(lines):
             if not SRTCueBlock.is_valid(block_lines):
@@ -152,7 +128,7 @@ class SRTParser(BaseParser):
         return captions
 
 
-class SBVParser(BaseParser):
+class SBVParser(Parser):
     """
     YouTube SBV parser.
     """
@@ -163,10 +139,13 @@ class SBVParser(BaseParser):
             return False
 
         first_block = next(cls.iter_blocks_of_lines(lines))
-        return first_block and SBVCueBlock.is_valid(first_block)
+        return bool(first_block and SBVCueBlock.is_valid(first_block))
 
     @classmethod
-    def parse(cls, lines: typing.Sequence[str]) -> typing.List[Caption]:
+    def parse_content(
+            cls,
+            lines: typing.Sequence[str]
+            ) -> typing.List[Caption]:
         captions = []
 
         for block_lines in cls.iter_blocks_of_lines(lines):

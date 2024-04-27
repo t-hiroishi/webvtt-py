@@ -1,12 +1,30 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+import unittest
 
 from .generic import GenericParserTestCase
 
 import webvtt
-from webvtt.parsers import WebVTTParser
+from webvtt.parsers import Parser
 from webvtt.structures import Caption
-from webvtt.errors import MalformedFileError, MalformedCaptionError
+from webvtt.errors import MalformedFileError
+
+
+class ParserTestCase(unittest.TestCase):
+
+    def test_validate_not_callable(self):
+        self.assertRaises(
+            NotImplementedError,
+            Parser.validate,
+            []
+            )
+
+    def test_parse_content_not_callable(self):
+        self.assertRaises(
+            NotImplementedError,
+            Parser.parse_content,
+            []
+            )
 
 
 class WebVTTParserTestCase(GenericParserTestCase):
@@ -129,6 +147,21 @@ class WebVTTParserTestCase(GenericParserTestCase):
             vtt.styles[0].text,
             '::cue {\n  background-image: linear-gradient(to bottom, dimgray, lightgray);\n  color: papayawhip;\n}'
         )
+
+    def test_parse_styles_with_comments(self):
+        vtt = webvtt.read(self._get_file('styles_with_comments.vtt'))
+        self.assertEqual(len(vtt.captions), 1)
+        self.assertEqual(len(vtt.styles), 2)
+        self.assertEqual(
+            vtt.styles[0].comments,
+            ['This is the first style block']
+            )
+        self.assertEqual(
+            vtt.styles[1].comments,
+            ['This is the second block of styles',
+             'Multiline comment for the same\nsecond block of styles'
+             ]
+            )
 
     def test_clean_cue_tags(self):
         vtt = webvtt.read(self._get_file('cue_tags.vtt'))

@@ -1,15 +1,14 @@
-__version__ = '0.4.6'
+__version__ = '0.5.0'
 
-from .webvtt import *
-from .segmenter import *
-from .structures import *
-from .errors import *
+from .webvtt import WebVTT
+from .segmenter import WebVTTSegmenter
+from .structures import Caption, Style  # noqa
 
-__all__ = webvtt.__all__ + segmenter.__all__ + structures.__all__ + errors.__all__
+__all__ = ['WebVTT', 'WebVTTSegmenter', 'Caption', 'Style']
 
 read = WebVTT.read
 read_buffer = WebVTT.read_buffer
+from_buffer = WebVTT.from_buffer
 from_srt = WebVTT.from_srt
 from_sbv = WebVTT.from_sbv
-list_formats = WebVTT.list_formats
 segment = WebVTTSegmenter().segment
