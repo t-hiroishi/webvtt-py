@@ -1,34 +1,161 @@
-import os
-from shutil import rmtree, copy
+import unittest
+import io
+import textwrap
+from datetime import time
 
-import webvtt
-
-from .generic import GenericParserTestCase
-
-
-BASE_DIR = os.path.dirname(__file__)
-OUTPUT_DIR = os.path.join(BASE_DIR, 'output')
+from webvtt import srt
+from webvtt.errors import MalformedFileError
+from webvtt.models import Caption
 
 
-class SRTCaptionsTestCase(GenericParserTestCase):
+class TestSRTCueBlock(unittest.TestCase):
 
-    def setUp(self):
-        os.makedirs(OUTPUT_DIR)
+    def test_is_valid(self):
+        self.assertTrue(srt.SRTCueBlock.is_valid(textwrap.dedent('''
+            1
+            00:00:00,500 --> 00:00:07,000
+            Caption #1
+            ''').strip().split('\n'))
+            )
 
-    def tearDown(self):
-        if os.path.exists(OUTPUT_DIR):
-            rmtree(OUTPUT_DIR)
+        self.assertTrue(srt.SRTCueBlock.is_valid(textwrap.dedent('''
+            1
+            00:00:00,500 --> 00:00:07,000
+            Caption #1 line 1
+            Caption #1 line 2
+            ''').strip().split('\n'))
+            )
 
-    def test_convert_from_srt_to_vtt_and_back_gives_same_file(self):
-        copy(self._get_file('sample.srt'), OUTPUT_DIR)
+        self.assertFalse(srt.SRTCueBlock.is_valid(textwrap.dedent('''
+            00:00:00,500 --> 00:00:07,000
+            Caption #1
+            ''').strip().split('\n'))
+            )
 
-        vtt = webvtt.from_srt(os.path.join(OUTPUT_DIR, 'sample.srt'))
-        vtt.save_as_srt(os.path.join(OUTPUT_DIR, 'sample_converted.srt'))
+        self.assertFalse(srt.SRTCueBlock.is_valid(textwrap.dedent('''
+            1
+            00:00:00.500 --> 00:00:07.000
+            Caption #1
+            ''').strip().split('\n'))
+            )
 
-        with open(os.path.join(OUTPUT_DIR, 'sample.srt'), 'r', encoding='utf-8') as f:
-            original = f.read()
+        self.assertFalse(srt.SRTCueBlock.is_valid(textwrap.dedent('''
+            1
+            00:00:00,500 --> 00:00:07,000
+            ''').strip().split('\n'))
+            )
 
-        with open(os.path.join(OUTPUT_DIR, 'sample_converted.srt'), 'r', encoding='utf-8') as f:
-            converted = f.read()
+        self.assertFalse(srt.SRTCueBlock.is_valid(textwrap.dedent('''
+            1
+            Caption #1
+            ''').strip().split('\n'))
+            )
 
-        self.assertEqual(original, converted)
+        self.assertFalse(srt.SRTCueBlock.is_valid(textwrap.dedent('''
+            Caption #1
+            ''').strip().split('\n'))
+            )
+
+        self.assertFalse(srt.SRTCueBlock.is_valid(textwrap.dedent('''
+            00:00:00,500 --> 00:00:07,000
+            ''').strip().split('\n'))
+            )
+
+    def test_from_lines(self):
+        cue_block = srt.SRTCueBlock.from_lines(textwrap.dedent('''
+            1
+            00:00:00,500 --> 00:00:07,000
+            Caption #1 line 1
+            Caption #1 line 2
+            ''').strip().split('\n')
+            )
+        self.assertEqual(cue_block.index, '1')
+        self.assertEqual(
+            cue_block.start,
+            time(hour=0, minute=0, second=0, microsecond=500000)
+            )
+        self.assertEqual(
+            cue_block.end,
+            time(hour=0, minute=0, second=7, microsecond=0)
+            )
+        self.assertEqual(
+            cue_block.payload,
+            ['Caption #1 line 1', 'Caption #1 line 2']
+            )
+
+
+class TestSRTModule(unittest.TestCase):
+
+    def test_parse_invalid_format(self):
+        self.assertRaises(
+            MalformedFileError,
+            srt.parse,
+            textwrap.dedent('''
+                00:00:00,500 --> 00:00:07,000
+                Caption text #1
+
+                00:00:07,000 --> 00:00:11,890
+                Caption text #2
+                ''').strip().split('\n')
+            )
+
+    def test_parse_captions(self):
+        captions = srt.parse(
+            textwrap.dedent('''
+            1
+            00:00:00,500 --> 00:00:07,000
+            Caption #1
+
+            2
+            00:00:07,000 --> 00:00:11,890
+            Caption #2 line 1
+            Caption #2 line 2
+            ''').strip().split('\n')
+            )
+        self.assertEqual(len(captions), 2)
+        self.assertIsInstance(captions[0], Caption)
+        self.assertIsInstance(captions[1], Caption)
+        self.assertEqual(
+            str(captions[0]),
+            '00:00:00.500 00:00:07.000 Caption #1'
+            )
+        self.assertEqual(
+            str(captions[1]),
+            r'00:00:07.000 00:00:11.890 Caption #2 line 1\n'
+            'Caption #2 line 2'
+            )
+
+    def test_write(self):
+        out = io.StringIO()
+        captions = [
+            Caption(start='00:00:00.500',
+                    end='00:00:07.000',
+                    text='Caption #1'
+                    ),
+            Caption(start='00:00:07.000',
+                    end='00:00:11.890',
+                    text=['Caption #2 line 1',
+                          'Caption #2 line 2'
+                          ]
+                    )
+            ]
+        captions[0].comments.append('Comment for the first caption')
+        captions[1].comments.append('Comment for the second caption')
+
+        srt.write(out, captions)
+
+        out.seek(0)
+
+        self.assertEqual(
+            out.read(),
+            textwrap.dedent('''
+                1
+                00:00:00,500 --> 00:00:07,000
+                Caption #1
+
+                2
+                00:00:07,000 --> 00:00:11,890
+                Caption #2 line 1
+                Caption #2 line 2
+            ''').strip()
+            )

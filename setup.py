@@ -1,19 +1,22 @@
-import io
+"""webvtt-py setuptools configuration."""
+
 import re
+import pathlib
+
 from setuptools import setup, find_packages
 
-with io.open('README.rst', 'r', encoding='utf-8') as f:
-    readme = f.read()
-
-with io.open('webvtt/__init__.py', 'rt', encoding='utf-8') as f:
-    version = re.search(r'__version__ = \'(.*?)\'', f.read()).group(1)
-
+version = (
+    re.search(
+        r'__version__ = \'(.*?)\'',
+        pathlib.Path('webvtt/__init__.py').read_text()
+        ).group(1)
+    )
 
 setup(
     name='webvtt-py',
     version=version,
     description='WebVTT reader, writer and segmenter',
-    long_description=readme,
+    long_description=pathlib.Path('README.rst').read_text(),
     author='Alejandro Mendez',
     author_email='amendez23@gmail.com',
     url='https://github.com/glut23/webvtt-py',

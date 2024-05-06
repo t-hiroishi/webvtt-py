@@ -5,18 +5,17 @@ import pathlib
 import textwrap
 
 from webvtt.cli import main
-import subprocess
+
 
 class CLITestCase(unittest.TestCase):
 
     def test_cli(self):
-        vtt_file = pathlib.Path(__file__).resolve().parent / 'subtitles' / 'sample.vtt'
+        vtt_file = (
+            pathlib.Path(__file__).resolve().parent
+            / 'samples' / 'sample.vtt'
+            )
 
         with tempfile.TemporaryDirectory() as temp_dir:
-
-
-            # result = subprocess.run(['python', 'webvtt/cli.py', *['segment', str(vtt_file.resolve()), '-o', temp_dir]], capture_output=True,
-            #             text=True)
 
             main(['segment', str(vtt_file.resolve()), '-o', temp_dir])
             _, dirs, files = next(os.walk(temp_dir))
@@ -181,4 +180,3 @@ class CLITestCase(unittest.TestCase):
                     Caption text #16
                     '''
                 ).lstrip())
-

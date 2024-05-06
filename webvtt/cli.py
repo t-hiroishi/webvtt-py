@@ -1,12 +1,16 @@
+"""CLI module."""
+
 import argparse
 import typing
 
-from . import WebVTTSegmenter
+from . import segmenter
 
 
 def main(argv: typing.Optional[typing.Sequence] = None):
     """
-    Segment WebVTT from command line.
+    Segment WebVTT file from command line.
+
+    :param argv: command line arguments
     """
     arguments = argparse.ArgumentParser(
         description='Segment WebVTT files.'
@@ -30,18 +34,20 @@ def main(argv: typing.Optional[typing.Sequence] = None):
         '-d', '--target-duration',
         metavar='NUMBER',
         type=int,
-        default=10,
+        default=segmenter.DEFAULT_SECONDS,
         help='target duration of each segment in seconds, default: 10'
         )
     arguments.add_argument(
         '-m', '--mpegts',
         metavar='NUMBER',
         type=int,
-        default=900000,
+        default=segmenter.DEFAULT_MPEGTS,
         help='presentation timestamp value, default: 900000'
         )
+
     args = arguments.parse_args(argv)
-    WebVTTSegmenter().segment(
+
+    segmenter.segment(
         args.file,
         args.output,
         args.target_duration,
@@ -50,4 +56,4 @@ def main(argv: typing.Optional[typing.Sequence] = None):
 
 
 if __name__ == '__main__':
-    main()
+    main()  # pragma: no cover

@@ -1,20 +1,14 @@
+"""WebVTT module."""
+
 import os
 import typing
-import codecs
 import warnings
 
-from . import writers
-from .parsers import WebVTTParser, SRTParser, SBVParser, Parser
-from .structures import Caption, Style
+from . import vtt, utils
+from . import srt
+from . import sbv
+from .models import Caption, Style
 from .errors import MissingFilenameError
-
-CODEC_BOMS = {
-    'utf-8-sig': codecs.BOM_UTF8,
-    'utf-32-le': codecs.BOM_UTF32_LE,
-    'utf-32-be': codecs.BOM_UTF32_BE,
-    'utf-16-le': codecs.BOM_UTF16_LE,
-    'utf-16-be': codecs.BOM_UTF16_BE
-}
 
 
 class WebVTT:
@@ -31,25 +25,40 @@ class WebVTT:
         WebVTT.from_sbv('captions.sbv')
     """
 
-    def __init__(self,
-                 file: typing.Optional[str] = None,
-                 captions: typing.Optional[typing.List[Caption]] = None,
-                 styles: typing.Optional[typing.List[Style]] = None
-                 ):
+    def __init__(
+            self,
+            file: typing.Optional[str] = None,
+            captions: typing.Optional[typing.List[Caption]] = None,
+            styles: typing.Optional[typing.List[Style]] = None,
+            bom: bool = False
+            ):
+        """
+        Initialize.
+
+        :param file: the path of the WebVTT file
+        :param captions: the list of captions
+        :param styles: the list of styles
+        :param bom: include Byte Order Mark. Default is not to include it.
+        """
         self.file = file
         self.captions = captions or []
         self.styles = styles or []
+        self._bom_encoding = None
 
     def __len__(self):
+        """Return the number of captions."""
         return len(self.captions)
 
     def __getitem__(self, index):
+        """Return a caption by index."""
         return self.captions[index]
 
     def __repr__(self):
+        """Return the string representation of the WebVTT file."""
         return f'<{self.__class__.__name__} file={self.file}>'
 
     def __str__(self):
+        """Return a readable representation of the WebVTT content."""
         return '\n'.join(str(c) for c in self.captions)
 
     @classmethod
@@ -58,17 +67,33 @@ class WebVTT:
             file: str,
             encoding: typing.Optional[str] = None
             ) -> 'WebVTT':
-        """Read a WebVTT captions file."""
-        with cls._open_file(file, encoding=encoding) as f:
-            return cls.from_buffer(f)
+        """
+        Read a WebVTT captions file.
+
+        :param file: the file path
+        :param encoding: encoding of the file
+        :returns: a `WebVTT` instance
+        """
+        with utils.FileWrapper.open(file, encoding=encoding) as fw:
+            instance = cls.from_buffer(fw.file)
+            instance._bom_encoding = fw.bom_encoding
+            return instance
 
     @classmethod
-    def read_buffer(cls, buffer: typing.Iterator[str]) -> 'WebVTT':
+    def read_buffer(
+            cls,
+            buffer: typing.Iterator[str]
+            ) -> 'WebVTT':
         """
-        [DEPRECATED] Read WebVTT captions from a file-like object.
+        Read WebVTT captions from a file-like object.
+
+        This method is DEPRECATED. Use from_buffer instead.
 
         Such file-like object may be the return of an io.open call,
         io.StringIO object, tempfile.TemporaryFile object, etc.
+
+        :param buffer: the file-like object to read captions from
+        :returns: a `WebVTT` instance
         """
         warnings.warn(
             'Deprecated: use from_buffer instead.',
@@ -77,19 +102,26 @@ class WebVTT:
         return cls.from_buffer(buffer)
 
     @classmethod
-    def from_buffer(cls, buffer: typing.Iterator[str]) -> 'WebVTT':
+    def from_buffer(
+            cls,
+            buffer: typing.Iterator[str]
+            ) -> 'WebVTT':
         """
         Read WebVTT captions from a file-like object.
 
         Such file-like object may be the return of an io.open call,
         io.StringIO object, tempfile.TemporaryFile object, etc.
-        """
-        items = cls._parse_content(buffer, parser=WebVTTParser)
 
-        return cls(file=getattr(buffer, 'name', None),
-                   captions=items[0],
-                   styles=items[1]
-                   )
+        :param buffer: the file-like object to read captions from
+        :returns: a `WebVTT` instance
+        """
+        captions, styles = vtt.parse(cls._get_lines(buffer))
+
+        return cls(
+            file=getattr(buffer, 'name', None),
+            captions=captions,
+            styles=styles
+            )
 
     @classmethod
     def from_srt(
@@ -97,11 +129,18 @@ class WebVTT:
             file: str,
             encoding: typing.Optional[str] = None
             ) -> 'WebVTT':
-        """Read captions from a file in SubRip format."""
-        with cls._open_file(file, encoding=encoding) as f:
-            return cls(file=f.name,
-                       captions=cls._parse_content(f, parser=SRTParser)[0],
-                       )
+        """
+        Read captions from a file in SubRip format.
+
+        :param file: the file path
+        :param encoding: encoding of the file
+        :returns: a `WebVTT` instance
+        """
+        with utils.FileWrapper.open(file, encoding=encoding) as fw:
+            return cls(
+                file=fw.file.name,
+                captions=srt.parse(cls._get_lines(fw.file))
+                )
 
     @classmethod
     def from_sbv(
@@ -109,66 +148,66 @@ class WebVTT:
             file: str,
             encoding: typing.Optional[str] = None
             ) -> 'WebVTT':
-        """Read captions from a file in YouTube SBV format."""
-        with cls._open_file(file, encoding=encoding) as f:
-            return cls(file=f.name,
-                       captions=cls._parse_content(f, parser=SBVParser)[0],
-                       )
+        """
+        Read captions from a file in YouTube SBV format.
+
+        :param file: the file path
+        :param encoding: encoding of the file
+        :returns: a `WebVTT` instance
+        """
+        with utils.FileWrapper.open(file, encoding=encoding) as fw:
+            return cls(
+                file=fw.file.name,
+                captions=sbv.parse(cls._get_lines(fw.file)),
+                )
 
     @classmethod
     def from_string(cls, string: str) -> 'WebVTT':
-        return cls(
-                captions=cls._parse_content(string.splitlines(),
-                                            parser=WebVTTParser
-                                            )[0]
-                )
+        """
+        Read captions from a string.
 
-    @classmethod
-    def _open_file(
-            cls,
-            file_path: str,
-            encoding: typing.Optional[str] = None
-            ) -> typing.IO:
-        return open(
-            file_path,
-            encoding=encoding or cls._detect_encoding(file_path) or 'utf-8'
+        :param string: the captions in a string
+        :returns: a `WebVTT` instance
+        """
+        captions, styles = vtt.parse(cls._get_lines(string.splitlines()))
+        return cls(
+            captions=captions,
+            styles=styles
             )
 
-    @classmethod
-    def _parse_content(
-            cls,
-            content: typing.Iterable[str],
-            parser: typing.Type[Parser]
-            ) -> typing.Tuple[typing.List[Caption], typing.List[Style]]:
-        lines = [line.rstrip('\n\r') for line in content]
-        items = parser.parse(lines)
-        return (list(filter(lambda c: isinstance(c, Caption), items)),
-                list(filter(lambda s: isinstance(s, Style), items))
-                )
-
     @staticmethod
-    def _detect_encoding(file_path: str) -> typing.Optional[str]:
-        with open(file_path, mode='rb') as f:
-            first_bytes = f.read(4)
-            for encoding, bom in CODEC_BOMS.items():
-                if first_bytes.startswith(bom):
-                    return encoding
-        return None
+    def _get_lines(lines: typing.Iterable[str]) -> typing.List[str]:
+        """
+        Return cleaned lines from an iterable of lines.
+
+        :param lines: iterable of lines
+        :returns: a list of cleaned lines
+        """
+        return [line.rstrip('\n\r') for line in lines]
 
     def _get_destination_file(
             self,
             destination_path: typing.Optional[str] = None,
             extension: str = 'vtt'
-            ):
+            ) -> str:
+        """
+        Return the destination file based on the provided params.
+
+        :param destination_path: optional destination path
+        :param extension: the extension of the file
+        :returns: the destination file
+
+        :raises MissingFilenameError: if destination path cannot be determined
+        """
         if not destination_path and not self.file:
             raise MissingFilenameError
 
-        assert self.file is not None
-
-        destination_path = (
-                destination_path or
+        if not destination_path and self.file:
+            destination_path = (
                 f'{os.path.splitext(self.file)[0]}.{extension}'
                 )
+
+        assert destination_path is not None
 
         target = os.path.join(os.getcwd(), destination_path)
         if os.path.isdir(target):
@@ -186,31 +225,57 @@ class WebVTT:
         # store the file in the specified full path
         return target
 
-    def save(self, output: typing.Optional[str] = None):
+    def save(
+            self,
+            output: typing.Optional[str] = None
+            ):
         """
         Save the WebVTT captions to a file.
 
-        If no output is provided the file will be saved in the same location.
-        Otherwise output can determine a target directory or file.
+        :param output: destination path of the file
+
+        :raises MissingFilenameError: if output cannot be determined
         """
         destination_file = self._get_destination_file(output)
         with open(destination_file, 'w', encoding='utf-8') as f:
-            self.write(f)
+            vtt.write(f, self.captions)
         self.file = destination_file
 
-    def save_as_srt(self, output: typing.Optional[str] = None):
+    def save_as_srt(
+            self,
+            output: typing.Optional[str] = None
+            ):
+        """
+        Save the WebVTT captions to a file in SubRip format.
+
+        :param output: destination path of the file
+
+        :raises MissingFilenameError: if output cannot be determined
+        """
         dest_file = self._get_destination_file(output, extension='srt')
         with open(dest_file, 'w', encoding='utf-8') as f:
-            self.write(f, format='srt')
+            srt.write(f, self.captions)
         self.file = dest_file
 
-    def write(self, f: typing.IO[str], format: str = 'vtt'):
+    def write(
+            self,
+            f: typing.IO[str],
+            format: str = 'vtt'
+            ):
+        """
+        Save the WebVTT captions to a file-like object.
+
+        :param f: destination file-like object
+        :param format: the format to use (`vtt` or `srt`)
+
+        :raises MissingFilenameError: if output cannot be determined
+        """
         if format == 'vtt':
-            writers.write_vtt(f, self.captions)
+            return vtt.write(f, self.captions)
         elif format == 'srt':
-            writers.write_srt(f, self.captions)
-        else:
-            raise ValueError(f'Format {format!r} is not supported')
+            return srt.write(f, self.captions)
+
+        raise ValueError(f'Format {format} is not supported.')
 
     @property
     def total_length(self):
@@ -228,6 +293,6 @@ class WebVTT:
         Return the webvtt capions as string.
 
         This property is useful in cases where the webvtt content is needed
-        but no file saving on the system is required.
+        but no file-like destination is required. Storage in DB for instance.
         """
-        return writers.webvtt_content(self.captions)
+        return vtt.to_str(self.captions)

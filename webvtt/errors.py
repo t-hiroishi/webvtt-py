@@ -1,15 +1,13 @@
+"""Errors module."""
+
 
 class MalformedFileError(Exception):
-    """Error raised when the file is not well formatted"""
+    """File is not in the right format."""
 
 
 class MalformedCaptionError(Exception):
-    """Error raised when a caption is not well formatted"""
-
-
-class InvalidCaptionsError(Exception):
-    """Error raised when passing wrong captions to the segmenter"""
+    """Caption not in the right format."""
 
 
 class MissingFilenameError(Exception):
-    """Error raised when saving a file without filename."""
+    """Missing a filename when saving to disk."""
