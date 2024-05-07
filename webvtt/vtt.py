@@ -185,7 +185,7 @@ def parse(
     if not is_valid_content(lines):
         raise MalformedFileError('Invalid format')
 
-    items = parse_captions(lines)
+    items = parse_items(lines)
     return ([item for item in items if isinstance(item, Caption)],
             [item for item in items if isinstance(item, Style)]
             )
@@ -201,42 +201,26 @@ def is_valid_content(lines: typing.Sequence[str]) -> bool:
     return bool(lines and lines[0].startswith('WEBVTT'))
 
 
-def parse_captions(
+def parse_items(
         lines: typing.Sequence[str]
         ) -> typing.List[typing.Union[Caption, Style]]:
     """
-    Parse captions from the text.
+    Parse items from the text.
 
     :param lines: lines of text
-    :returns: tuple of a list of `Caption` objects and a list of `Style`
-    objects
+    :returns: a list of `Caption` objects or `Style` objects
     """
     items: typing.List[typing.Union[Caption, Style]] = []
     comments: typing.List[WebVTTCommentBlock] = []
 
     for block_lines in utils.iter_blocks_of_lines(lines):
-        if WebVTTCueBlock.is_valid(block_lines):
-            cue_block = WebVTTCueBlock.from_lines(block_lines)
-            caption = Caption(cue_block.start,
-                              cue_block.end,
-                              cue_block.payload,
-                              cue_block.identifier
-                              )
-
-            if comments:
-                caption.comments = [comment.text for comment in comments]
-                comments = []
-            items.append(caption)
-
+        item = parse_item(block_lines)
+        if item:
+            item.comments = [comment.text for comment in comments]
+            comments = []
+            items.append(item)
         elif WebVTTCommentBlock.is_valid(block_lines):
             comments.append(WebVTTCommentBlock.from_lines(block_lines))
-
-        elif WebVTTStyleBlock.is_valid(block_lines):
-            style = Style(WebVTTStyleBlock.from_lines(block_lines).text)
-            if comments:
-                style.comments = [comment.text for comment in comments]
-                comments = []
-            items.append(style)
 
     if comments and items:
         items[-1].comments.extend(
@@ -244,6 +228,29 @@ def parse_captions(
             )
 
     return items
+
+
+def parse_item(
+        lines: typing.Sequence[str]
+        ) -> typing.Union[Caption, Style, None]:
+    """
+    Parse an item from lines of text.
+
+    :param lines: lines of text
+    :returns: An item (Caption or Style) if found, otherwise None
+    """
+    if WebVTTCueBlock.is_valid(lines):
+        cue_block = WebVTTCueBlock.from_lines(lines)
+        return Caption(cue_block.start,
+                       cue_block.end,
+                       cue_block.payload,
+                       cue_block.identifier
+                       )
+
+    if WebVTTStyleBlock.is_valid(lines):
+        return Style(WebVTTStyleBlock.from_lines(lines).text)
+
+    return None
 
 
 def write(
