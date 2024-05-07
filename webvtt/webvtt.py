@@ -10,6 +10,8 @@ from . import sbv
 from .models import Caption, Style
 from .errors import MissingFilenameError
 
+DEFAULT_ENCODING = 'utf-8'
+
 
 class WebVTT:
     """
@@ -30,7 +32,6 @@ class WebVTT:
             file: typing.Optional[str] = None,
             captions: typing.Optional[typing.List[Caption]] = None,
             styles: typing.Optional[typing.List[Style]] = None,
-            bom: bool = False
             ):
         """
         Initialize.
@@ -38,12 +39,12 @@ class WebVTT:
         :param file: the path of the WebVTT file
         :param captions: the list of captions
         :param styles: the list of styles
-        :param bom: include Byte Order Mark. Default is not to include it.
         """
         self.file = file
         self.captions = captions or []
         self.styles = styles or []
-        self._bom_encoding = None
+        self._has_bom = False
+        self.encoding = DEFAULT_ENCODING
 
     def __len__(self):
         """Return the number of captions."""
@@ -55,7 +56,9 @@ class WebVTT:
 
     def __repr__(self):
         """Return the string representation of the WebVTT file."""
-        return f'<{self.__class__.__name__} file={self.file}>'
+        return (f'<{self.__class__.__name__} file={self.file!r} '
+                f'encoding={self.encoding!r}>'
+                )
 
     def __str__(self):
         """Return a readable representation of the WebVTT content."""
@@ -76,7 +79,9 @@ class WebVTT:
         """
         with utils.FileWrapper.open(file, encoding=encoding) as fw:
             instance = cls.from_buffer(fw.file)
-            instance._bom_encoding = fw.bom_encoding
+            if fw.bom_encoding:
+                instance.encoding = fw.bom_encoding
+                instance._has_bom = True
             return instance
 
     @classmethod
@@ -227,17 +232,28 @@ class WebVTT:
 
     def save(
             self,
-            output: typing.Optional[str] = None
+            output: typing.Optional[str] = None,
+            encoding: typing.Optional[str] = None,
+            add_bom: typing.Optional[bool] = None
             ):
         """
         Save the WebVTT captions to a file.
 
         :param output: destination path of the file
+        :param encoding: encoding of the file (defaults to UTF-8)
+        :param add_bom: save the file with Byte Order Mark
 
         :raises MissingFilenameError: if output cannot be determined
         """
         destination_file = self._get_destination_file(output)
-        with open(destination_file, 'w', encoding='utf-8') as f:
+        encoding = encoding or self.encoding
+        if add_bom is None and self._has_bom:
+            add_bom = True
+
+        with open(destination_file, 'w', encoding=encoding) as f:
+            if add_bom and encoding in utils.CODEC_BOMS:
+                f.write(utils.CODEC_BOMS[encoding].decode(encoding))
+
             vtt.write(f, self.captions)
         self.file = destination_file
 

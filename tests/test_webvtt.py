@@ -8,6 +8,7 @@ import pathlib
 
 import webvtt
 from webvtt.models import Caption, Style
+from webvtt.utils import CODEC_BOMS
 from webvtt.errors import MalformedFileError
 
 PATH_TO_SAMPLES = pathlib.Path(__file__).resolve().parent / 'samples'
@@ -433,7 +434,7 @@ class TestWebVTT(unittest.TestCase):
         test_file = PATH_TO_SAMPLES / 'sample.vtt'
         self.assertEqual(
             repr(webvtt.read(test_file)),
-            f'<WebVTT file={test_file}>'
+            f"<WebVTT file='{test_file}' encoding='utf-8'>"
         )
 
     def test_str(self):
@@ -806,4 +807,146 @@ class TestParseSBV(unittest.TestCase):
             self.assertEqual(
                 pathlib.Path(PATH_TO_SAMPLES / 'sample.srt').read_text(),
                 pathlib.Path(f.name).read_text()
+                )
+
+    def test_save_file_with_bom(self):
+        with tempfile.NamedTemporaryFile('r', suffix='.vtt') as f:
+            webvtt.read(
+                PATH_TO_SAMPLES / 'one_caption.vtt'
+                ).save(f.name, add_bom=True)
+            self.assertEqual(
+                f.read(),
+                textwrap.dedent(f'''
+                    {CODEC_BOMS['utf-8'].decode()}WEBVTT
+
+                    00:00:00.500 --> 00:00:07.000
+                    Caption text #1
+                    ''').strip()
+                )
+
+    def test_save_file_with_bom_keeps_bom(self):
+        with tempfile.NamedTemporaryFile('r', suffix='.vtt') as f:
+            webvtt.read(
+                PATH_TO_SAMPLES / 'captions_with_bom.vtt'
+            ).save(f.name)
+            self.assertEqual(
+                f.read(),
+                textwrap.dedent(f'''
+                    {CODEC_BOMS['utf-8'].decode()}WEBVTT
+
+                    00:00:00.500 --> 00:00:07.000
+                    Caption text #1
+
+                    00:00:07.000 --> 00:00:11.890
+                    Caption text #2
+
+                    00:00:11.890 --> 00:00:16.320
+                    Caption text #3
+
+                    00:00:16.320 --> 00:00:21.580
+                    Caption text #4
+                    ''').strip()
+            )
+
+    def test_save_file_with_bom_removes_bom_if_requested(self):
+        with tempfile.NamedTemporaryFile('r', suffix='.vtt') as f:
+            webvtt.read(
+                PATH_TO_SAMPLES / 'captions_with_bom.vtt'
+            ).save(f.name, add_bom=False)
+            self.assertEqual(
+                f.read(),
+                textwrap.dedent(f'''
+                    WEBVTT
+
+                    00:00:00.500 --> 00:00:07.000
+                    Caption text #1
+
+                    00:00:07.000 --> 00:00:11.890
+                    Caption text #2
+
+                    00:00:11.890 --> 00:00:16.320
+                    Caption text #3
+
+                    00:00:16.320 --> 00:00:21.580
+                    Caption text #4
+                    ''').strip()
+            )
+
+    def test_save_file_with_encoding(self):
+        with tempfile.NamedTemporaryFile('rb', suffix='.vtt') as f:
+            webvtt.read(
+                PATH_TO_SAMPLES / 'one_caption.vtt'
+            ).save(f.name,
+                   encoding='utf-32-le'
+                   )
+            self.assertEqual(
+                f.read().decode('utf-32-le'),
+                textwrap.dedent('''
+                    WEBVTT
+
+                    00:00:00.500 --> 00:00:07.000
+                    Caption text #1
+                    ''').strip()
+            )
+
+    def test_save_file_with_encoding_and_bom(self):
+        with tempfile.NamedTemporaryFile('rb', suffix='.vtt') as f:
+            webvtt.read(
+                PATH_TO_SAMPLES / 'one_caption.vtt'
+            ).save(f.name,
+                   encoding='utf-32-le',
+                   add_bom=True
+                   )
+            self.assertEqual(
+                f.read().decode('utf-32-le'),
+                textwrap.dedent(f'''
+                    {CODEC_BOMS['utf-32-le'].decode('utf-32-le')}WEBVTT
+
+                    00:00:00.500 --> 00:00:07.000
+                    Caption text #1
+                    ''').strip()
+            )
+
+    def test_save_new_file_utf_8_default_encoding_no_bom(self):
+        with tempfile.NamedTemporaryFile('r', suffix='.vtt') as f:
+            vtt = webvtt.WebVTT()
+            vtt.captions.append(
+                Caption(start='00:00:00.500',
+                        end='00:00:07.000',
+                        text='Caption text #1'
+                        )
+                )
+            vtt.save(f.name)
+            self.assertEqual(vtt.encoding, 'utf-8')
+            self.assertEqual(
+                f.read(),
+                textwrap.dedent(f'''
+                    WEBVTT
+
+                    00:00:00.500 --> 00:00:07.000
+                    Caption text #1
+                    ''').strip()
+                )
+
+    def test_save_new_file_utf_8_default_encoding_with_bom(self):
+        with tempfile.NamedTemporaryFile('r', suffix='.vtt') as f:
+            vtt = webvtt.WebVTT()
+            vtt.captions.append(
+                Caption(start='00:00:00.500',
+                        end='00:00:07.000',
+                        text='Caption text #1'
+                        )
+                )
+            vtt.save(f.name,
+                     add_bom=True
+                     )
+            self.assertEqual(vtt.encoding, 'utf-8')
+            self.assertEqual(
+                f.read(),
+                textwrap.dedent(f'''
+                    {CODEC_BOMS['utf-8'].decode()}WEBVTT
+
+                    00:00:00.500 --> 00:00:07.000
+                    Caption text #1
+                    ''').strip()
                 )
