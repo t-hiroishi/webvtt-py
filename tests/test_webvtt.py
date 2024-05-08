@@ -5,6 +5,7 @@ import textwrap
 import warnings
 import tempfile
 import pathlib
+from datetime import time
 
 import webvtt
 from webvtt.models import Caption, Style
@@ -950,3 +951,67 @@ class TestParseSBV(unittest.TestCase):
                     Caption text #1
                     ''').strip()
                 )
+
+    def test_iter_slice(self):
+        vtt = webvtt.read(
+                PATH_TO_SAMPLES / 'sample.vtt'
+                )
+        slice_of_captions = vtt.iter_slice(start_time=time(second=11),
+                                           end_time=time(second=27)
+                                           )
+        for expected_caption in (vtt.captions[2],
+                                 vtt.captions[3],
+                                 vtt.captions[4]
+                                 ):
+            self.assertIs(expected_caption, next(slice_of_captions))
+
+        with self.assertRaises(StopIteration):
+            next(slice_of_captions)
+
+    def test_iter_slice_timestamp_string(self):
+        vtt = webvtt.read(
+                PATH_TO_SAMPLES / 'sample.vtt'
+                )
+        slice_of_captions = vtt.iter_slice(start_time='00:00:11.000',
+                                           end_time='00:00:27.000'
+                                           )
+        for expected_caption in (vtt.captions[2],
+                                 vtt.captions[3],
+                                 vtt.captions[4]
+                                 ):
+            self.assertIs(expected_caption, next(slice_of_captions))
+
+        with self.assertRaises(StopIteration):
+            next(slice_of_captions)
+
+    def test_iter_slice_no_start_time(self):
+        vtt = webvtt.read(
+                PATH_TO_SAMPLES / 'sample.vtt'
+                )
+        slice_of_captions = vtt.iter_slice(end_time=time(second=27))
+        for expected_caption in (vtt.captions[0],
+                                 vtt.captions[1],
+                                 vtt.captions[2],
+                                 vtt.captions[3],
+                                 vtt.captions[4]
+                                 ):
+            self.assertIs(expected_caption, next(slice_of_captions))
+
+        with self.assertRaises(StopIteration):
+            next(slice_of_captions)
+
+    def test_iter_slice_no_end_time(self):
+        vtt = webvtt.read(
+                PATH_TO_SAMPLES / 'sample.vtt'
+                )
+        slice_of_captions = vtt.iter_slice(start_time=time(second=47))
+        for expected_caption in (vtt.captions[11],
+                                 vtt.captions[12],
+                                 vtt.captions[13],
+                                 vtt.captions[14],
+                                 vtt.captions[15]
+                                 ):
+            self.assertIs(expected_caption, next(slice_of_captions))
+
+        with self.assertRaises(StopIteration):
+            next(slice_of_captions)

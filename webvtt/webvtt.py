@@ -3,6 +3,7 @@
 import os
 import typing
 import warnings
+from datetime import time
 
 from . import vtt, utils
 from . import srt
@@ -240,38 +241,39 @@ class WebVTT:
         Save the WebVTT captions to a file.
 
         :param output: destination path of the file
-        :param encoding: encoding of the file (defaults to UTF-8)
+        :param encoding: encoding of the file
         :param add_bom: save the file with Byte Order Mark
 
         :raises MissingFilenameError: if output cannot be determined
         """
-        destination_file = self._get_destination_file(output)
+        self.file = self._get_destination_file(output)
         encoding = encoding or self.encoding
+
         if add_bom is None and self._has_bom:
             add_bom = True
 
-        with open(destination_file, 'w', encoding=encoding) as f:
+        with open(self.file, 'w', encoding=encoding) as f:
             if add_bom and encoding in utils.CODEC_BOMS:
                 f.write(utils.CODEC_BOMS[encoding].decode(encoding))
 
             vtt.write(f, self.captions)
-        self.file = destination_file
 
     def save_as_srt(
             self,
-            output: typing.Optional[str] = None
+            output: typing.Optional[str] = None,
+            encoding: typing.Optional[str] = DEFAULT_ENCODING
             ):
         """
         Save the WebVTT captions to a file in SubRip format.
 
         :param output: destination path of the file
+        :param encoding: encoding of the file
 
         :raises MissingFilenameError: if output cannot be determined
         """
-        dest_file = self._get_destination_file(output, extension='srt')
-        with open(dest_file, 'w', encoding='utf-8') as f:
+        self.file = self._get_destination_file(output, extension='srt')
+        with open(self.file, 'w', encoding=encoding) as f:
             srt.write(f, self.captions)
-        self.file = dest_file
 
     def write(
             self,
@@ -292,6 +294,28 @@ class WebVTT:
             return srt.write(f, self.captions)
 
         raise ValueError(f'Format {format} is not supported.')
+
+    def iter_slice(
+            self,
+            start_time: typing.Optional[typing.Union[str, time]] = None,
+            end_time: typing.Optional[typing.Union[str, time]] = None
+            ) -> typing.Generator[Caption, None, None]:
+        """
+        Iterate a slice of the captions based on a time range.
+
+        :param start_time: start time of the range
+        :param end_time: end time of the range
+        :returns: generator of Captions
+        """
+        start_time = utils.parse_timestamp(start_time) if start_time else None
+        end_time = utils.parse_timestamp(end_time) if end_time else None
+
+        for caption in self.captions:
+            if (
+                    (not start_time or caption.start_time >= start_time) and
+                    (not end_time or caption.end_time <= end_time)
+                    ):
+                yield caption
 
     @property
     def total_length(self):

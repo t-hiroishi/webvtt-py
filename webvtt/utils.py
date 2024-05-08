@@ -2,6 +2,7 @@
 
 import typing
 import codecs
+from datetime import datetime, time
 
 CODEC_BOMS = {
     'utf-8': codecs.BOM_UTF8,
@@ -102,3 +103,20 @@ def iter_blocks_of_lines(
 
     if current_text_block:
         yield current_text_block
+
+
+def parse_timestamp(value: typing.Union[str, time]) -> time:
+    """
+    Return timestamp as time object if in string format.
+
+    :param value: value to be parsed as timestamp
+    :raises ValueError: if the value cannot be parsed as timestamp
+    :raises TypeError: when the type of the value provided is not supported
+    """
+    if isinstance(value, str):
+        time_format = '%H:%M:%S.%f' if len(value) >= 11 else '%M:%S.%f'
+        return datetime.strptime(value, time_format).time()
+    elif isinstance(value, time):
+        return value
+
+    raise TypeError(f'The type {type(value)} is not supported')

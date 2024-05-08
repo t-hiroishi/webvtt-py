@@ -2,8 +2,9 @@
 
 import re
 import typing
-from datetime import datetime, time
+from datetime import time
 
+from . import utils
 from .errors import MalformedCaptionError
 
 
@@ -68,32 +69,32 @@ class Caption:
     @property
     def start(self):
         """Return the start time of the caption."""
-        return self.format_timestamp(self._start)
+        return self.format_timestamp(self.start_time)
 
     @start.setter
     def start(self, value: typing.Union[str, time]):
         """Set the start time of the caption."""
-        self._start = self.parse_timestamp(value)
+        self.start_time = self.parse_timestamp(value)
 
     @property
     def end(self):
         """Return the end time of the caption."""
-        return self.format_timestamp(self._end)
+        return self.format_timestamp(self.end_time)
 
     @end.setter
     def end(self, value: typing.Union[str, time]):
         """Set the end time of the caption."""
-        self._end = self.parse_timestamp(value)
+        self.end_time = self.parse_timestamp(value)
 
     @property
     def start_in_seconds(self) -> int:
         """Return the start time of the caption in seconds."""
-        return self.time_in_seconds(self._start)
+        return self.time_in_seconds(self.start_time)
 
     @property
     def end_in_seconds(self):
         """Return the end time of the caption in seconds."""
-        return self.time_in_seconds(self._end)
+        return self.time_in_seconds(self.end_time)
 
     @property
     def raw_text(self) -> str:
@@ -117,17 +118,11 @@ class Caption:
 
     @staticmethod
     def parse_timestamp(value: typing.Union[str, time]) -> time:
-        """Return timestamp as time object if in string format."""
-        if isinstance(value, str):
-            time_format = '%H:%M:%S.%f' if len(value) >= 11 else '%M:%S.%f'
-            try:
-                return datetime.strptime(value, time_format).time()
-            except ValueError:
-                raise MalformedCaptionError(f'Invalid timestamp: {value}')
-        elif isinstance(value, time):
-            return value
-
-        raise TypeError(f'The type {type(value)} is not supported')
+        """Parse the provided value as timestamp."""
+        try:
+            return utils.parse_timestamp(value)
+        except ValueError:
+            raise MalformedCaptionError(f'Invalid timestamp: {value}')
 
     @staticmethod
     def format_timestamp(time_obj: time) -> str:
