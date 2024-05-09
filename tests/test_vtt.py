@@ -234,7 +234,7 @@ class TestVTTModule(unittest.TestCase):
             )
 
     def test_parse_captions(self):
-        captions, styles = vtt.parse(
+        output = vtt.parse(
             textwrap.dedent('''
             WEBVTT
 
@@ -246,6 +246,8 @@ class TestVTTModule(unittest.TestCase):
             Caption text #2 line 2
             ''').strip().split('\n')
             )
+        captions = output.captions
+        styles = output.styles
         self.assertEqual(len(captions), 2)
         self.assertEqual(len(styles), 0)
         self.assertIsInstance(captions[0], Caption)
@@ -261,7 +263,7 @@ class TestVTTModule(unittest.TestCase):
             )
 
     def test_parse_styles(self):
-        captions, styles = vtt.parse(
+        output = vtt.parse(
             textwrap.dedent('''
             WEBVTT
 
@@ -280,6 +282,8 @@ class TestVTTModule(unittest.TestCase):
             Caption text #1
             ''').strip().split('\n')
             )
+        captions = output.captions
+        styles = output.styles
         self.assertEqual(len(captions), 1)
         self.assertEqual(len(styles), 2)
         self.assertIsInstance(styles[0], Style)
@@ -303,11 +307,22 @@ class TestVTTModule(unittest.TestCase):
             )
 
     def test_parse_content(self):
-        captions, styles = vtt.parse(
+        output = vtt.parse(
             textwrap.dedent('''
             WEBVTT
 
-            NOTE Comment for the style
+            NOTE This is a testing sample
+
+            NOTE We can see two header comments, a style
+            comment and finally a footer comments
+
+            STYLE
+            ::cue {
+              background-image: linear-gradient(to bottom, dimgray);
+              color: papayawhip;
+            }
+
+            NOTE the following style needs review
 
             STYLE
             ::cue {
@@ -327,14 +342,19 @@ class TestVTTModule(unittest.TestCase):
             Caption text #2 line 1
             Caption text #2 line 2
 
+            NOTE Copyright 2024
+
             NOTE end of file
             ''').strip().split('\n')
             )
+        captions = output.captions
+        styles = output.styles
         self.assertEqual(len(captions), 2)
-        self.assertEqual(len(styles), 1)
+        self.assertEqual(len(styles), 2)
         self.assertIsInstance(captions[0], Caption)
         self.assertIsInstance(captions[1], Caption)
         self.assertIsInstance(styles[0], Style)
+        self.assertIsInstance(styles[1], Style)
         self.assertEqual(
             str(captions[0]),
             '00:00:00.500 00:00:07.000 Caption text #1'
@@ -348,13 +368,26 @@ class TestVTTModule(unittest.TestCase):
             str(styles[0].text),
             textwrap.dedent('''
                 ::cue {
+                  background-image: linear-gradient(to bottom, dimgray);
+                  color: papayawhip;
+                }
+                ''').strip()
+        )
+        self.assertEqual(
+            str(styles[1].text),
+            textwrap.dedent('''
+                ::cue {
                   color: white;
                 }
                 ''').strip()
         )
         self.assertEqual(
             styles[0].comments,
-            ['Comment for the style']
+            []
+            )
+        self.assertEqual(
+            styles[1].comments,
+            ['the following style needs review']
             )
         self.assertEqual(
             captions[0].comments,
@@ -362,10 +395,19 @@ class TestVTTModule(unittest.TestCase):
             )
         self.assertEqual(
             captions[1].comments,
-            ['Comment for the second caption\nthat is very long',
-             'end of file'
-             ]
+            ['Comment for the second caption\nthat is very long']
             )
+        self.assertListEqual(output.header_comments,
+                             ['This is a testing sample',
+                              'We can see two header comments, a style\n'
+                              'comment and finally a footer comments'
+                              ]
+                             )
+        self.assertListEqual(output.footer_comments,
+                             ['Copyright 2024',
+                              'end of file'
+                              ]
+                             )
 
     def test_write(self):
         out = io.StringIO()
@@ -381,10 +423,25 @@ class TestVTTModule(unittest.TestCase):
                           ]
                     )
             ]
+        styles = [
+            Style('::cue(b) {\n  color: peachpuff;\n}'),
+            Style('::cue {\n  color: papayawhip;\n}')
+        ]
         captions[0].comments.append('Comment for the first caption')
         captions[1].comments.append('Comment for the second caption')
+        styles[1].comments.append(
+            'Comment for the second style\nwith two lines'
+            )
+        header_comments = ['header comment', 'begin of the file']
+        footer_comments = ['footer comment', 'end of file']
 
-        vtt.write(out, captions)
+        vtt.write(
+            out,
+            captions,
+            styles,
+            header_comments,
+            footer_comments
+            )
 
         out.seek(0)
 
@@ -393,12 +450,38 @@ class TestVTTModule(unittest.TestCase):
             textwrap.dedent('''
                 WEBVTT
 
+                NOTE header comment
+
+                NOTE begin of the file
+
+                STYLE
+                ::cue(b) {
+                  color: peachpuff;
+                }
+
+                NOTE
+                Comment for the second style
+                with two lines
+
+                STYLE
+                ::cue {
+                  color: papayawhip;
+                }
+
+                NOTE Comment for the first caption
+
                 00:00:00.500 --> 00:00:07.000
                 Caption #1
+
+                NOTE Comment for the second caption
 
                 00:00:07.000 --> 00:00:11.890
                 Caption #2 line 1
                 Caption #2 line 2
+
+                NOTE footer comment
+
+                NOTE end of file
             ''').strip()
             )
 
@@ -415,19 +498,59 @@ class TestVTTModule(unittest.TestCase):
                           ]
                     )
             ]
+        styles = [
+            Style('::cue(b) {\n  color: peachpuff;\n}'),
+            Style('::cue {\n  color: papayawhip;\n}')
+        ]
         captions[0].comments.append('Comment for the first caption')
         captions[1].comments.append('Comment for the second caption')
+        styles[1].comments.append(
+            'Comment for the second style\nwith two lines'
+            )
+        header_comments = ['header comment', 'begin of the file']
+        footer_comments = ['footer comment', 'end of file']
 
         self.assertEqual(
-            vtt.to_str(captions),
+            vtt.to_str(
+                captions,
+                styles,
+                header_comments,
+                footer_comments
+                ),
             textwrap.dedent('''
                 WEBVTT
+
+                NOTE header comment
+
+                NOTE begin of the file
+
+                STYLE
+                ::cue(b) {
+                  color: peachpuff;
+                }
+
+                NOTE
+                Comment for the second style
+                with two lines
+
+                STYLE
+                ::cue {
+                  color: papayawhip;
+                }
+
+                NOTE Comment for the first caption
 
                 00:00:00.500 --> 00:00:07.000
                 Caption #1
 
+                NOTE Comment for the second caption
+
                 00:00:07.000 --> 00:00:11.890
                 Caption #2 line 1
                 Caption #2 line 2
+
+                NOTE footer comment
+
+                NOTE end of file
             ''').strip()
             )

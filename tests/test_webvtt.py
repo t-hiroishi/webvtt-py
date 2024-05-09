@@ -561,25 +561,33 @@ class TestWebVTT(unittest.TestCase):
             vtt.captions[0].lines,
             ['- Ta en kopp varmt te.',
              '- Det är inte varmt.']
-        )
+            )
         self.assertListEqual(
             vtt.captions[0].comments,
-            ['This translation was done by Kyle so that\n'
-             'some friends can watch it with their parents.'
-             ]
-        )
+            []
+            )
         self.assertListEqual(
             vtt.captions[1].comments,
             []
-        )
+            )
         self.assertEqual(
             vtt.captions[2].text,
             '- Ta en kopp'
-        )
+            )
         self.assertListEqual(
             vtt.captions[2].comments,
             ['This last line may not translate well.']
-        )
+            )
+        self.assertListEqual(
+            vtt.header_comments,
+            ['This translation was done by Kyle so that\n'
+             'some friends can watch it with their parents.'
+             ]
+            )
+        self.assertListEqual(
+            vtt.footer_comments,
+            ['end of file']
+            )
 
     def test_parse_styles(self):
         vtt = webvtt.read(PATH_TO_SAMPLES / 'styles.vtt')
@@ -596,7 +604,7 @@ class TestWebVTT(unittest.TestCase):
         self.assertEqual(len(vtt.styles), 2)
         self.assertEqual(
             vtt.styles[0].comments,
-            ['This is the first style block']
+            []
             )
         self.assertEqual(
             vtt.styles[0].text,
@@ -618,6 +626,183 @@ class TestWebVTT(unittest.TestCase):
             '  color: peachpuff;\n'
             '}'
         )
+        self.assertListEqual(
+            vtt.header_comments,
+            ['Sample of comments with styles']
+            )
+        self.assertListEqual(
+            vtt.footer_comments,
+            []
+            )
+
+    def test_multiple_comments_everywhere(self):
+        vtt = webvtt.WebVTT.from_string(textwrap.dedent("""
+            WEBVTT
+
+            NOTE Test file
+
+            NOTE this file is testing multiple comments
+            in different places
+
+            STYLE
+            ::cue {
+              background-image: linear-gradient(to bottom, dimgray, lightgray);
+              color: papayawhip;
+            }
+
+            NOTE this style uses nice color
+
+            NOTE check how it looks before proceeding
+
+            STYLE
+            ::cue(b) {
+              color: peachpuff;
+            }
+
+            00:00:00.500 --> 00:00:07.000
+            Caption text #1
+
+            NOTE next caption has two lines
+
+            NOTE needs review
+
+            00:00:07.000 --> 00:00:11.890
+            Caption text #2 line 1
+            Caption text #2 line 2
+
+            00:00:11.890 --> 00:00:16.320
+            Caption text #3
+
+            00:00:16.320 --> 00:00:21.580
+            Caption text #4
+
+            NOTE Copyright 2024
+
+            NOTE this is the end of the file
+            """).strip())
+
+        self.assertListEqual(
+            vtt.header_comments,
+            ['Test file',
+             'this file is testing multiple comments\nin different places'
+             ]
+            )
+        self.assertListEqual(
+            vtt.footer_comments,
+            ['Copyright 2024',
+             'this is the end of the file'
+             ]
+            )
+        self.assertListEqual(
+            vtt.captions[0].comments,
+            []
+            )
+        self.assertListEqual(
+            vtt.captions[1].comments,
+            ['next caption has two lines',
+             'needs review'
+             ]
+            )
+        self.assertListEqual(
+            vtt.captions[2].comments,
+            []
+            )
+        self.assertListEqual(
+            vtt.captions[3].comments,
+            []
+            )
+        self.assertListEqual(
+            vtt.styles[0].comments,
+            []
+            )
+        self.assertListEqual(
+            vtt.styles[1].comments,
+            ['this style uses nice color',
+             'check how it looks before proceeding'
+             ]
+            )
+
+    def test_comments_in_new_file(self):
+        with tempfile.NamedTemporaryFile('r', suffix='.vtt') as f:
+            vtt = webvtt.WebVTT()
+            vtt.header_comments.append('This is a header comment')
+            vtt.header_comments.append(
+                'where we can see a\ntwo line comment'
+                )
+            vtt.styles.append(
+                Style('::cue(b) {\n  color: peachpuff;\n}')
+            )
+            style = Style('::cue {\n  color: papayawhip;\n}')
+            style.comments.append('Another style to test\nthe look and feel')
+            style.comments.append('Please check')
+            vtt.styles.append(style)
+            vtt.captions.append(
+                Caption(start='00:00:00.500',
+                        end='00:00:07.000',
+                        text='Caption #1',
+                        )
+            )
+            caption = Caption(start='00:00:07.000',
+                              end='00:00:11.890',
+                              text='Caption #2'
+                              )
+            caption.comments.append(
+                'Second caption may be a bit off\nand needs checking'
+                )
+            caption.comments.append('Confirm if it displays correctly')
+            vtt.captions.append(caption)
+            vtt.footer_comments.append('This is a footer comment')
+            vtt.footer_comments.append(
+                'where we can also see a\ntwo line comment'
+                )
+
+            vtt.save(f.name)
+            self.assertEqual(
+                f.read(),
+                textwrap.dedent('''
+                    WEBVTT
+
+                    NOTE This is a header comment
+
+                    NOTE
+                    where we can see a
+                    two line comment
+
+                    STYLE
+                    ::cue(b) {
+                      color: peachpuff;
+                    }
+
+                    NOTE
+                    Another style to test
+                    the look and feel
+
+                    NOTE Please check
+
+                    STYLE
+                    ::cue {
+                      color: papayawhip;
+                    }
+
+                    00:00:00.500 --> 00:00:07.000
+                    Caption #1
+
+                    NOTE
+                    Second caption may be a bit off
+                    and needs checking
+
+                    NOTE Confirm if it displays correctly
+
+                    00:00:07.000 --> 00:00:11.890
+                    Caption #2
+
+                    NOTE This is a footer comment
+
+                    NOTE
+                    where we can also see a
+                    two line comment
+                    ''').strip()
+                )
 
     def test_clean_cue_tags(self):
         vtt = webvtt.read(PATH_TO_SAMPLES / 'cue_tags.vtt')

@@ -33,6 +33,8 @@ class WebVTT:
             file: typing.Optional[str] = None,
             captions: typing.Optional[typing.List[Caption]] = None,
             styles: typing.Optional[typing.List[Style]] = None,
+            header_comments: typing.Optional[typing.List[str]] = None,
+            footer_comments: typing.Optional[typing.List[str]] = None,
             ):
         """
         Initialize.
@@ -40,10 +42,14 @@ class WebVTT:
         :param file: the path of the WebVTT file
         :param captions: the list of captions
         :param styles: the list of styles
+        :param header_comments: list of comments for the start of the file
+        :param footer_comments: list of comments for the bottom of the file
         """
         self.file = file
         self.captions = captions or []
         self.styles = styles or []
+        self.header_comments = header_comments or []
+        self.footer_comments = footer_comments or []
         self._has_bom = False
         self.encoding = DEFAULT_ENCODING
 
@@ -121,12 +127,14 @@ class WebVTT:
         :param buffer: the file-like object to read captions from
         :returns: a `WebVTT` instance
         """
-        captions, styles = vtt.parse(cls._get_lines(buffer))
+        output = vtt.parse(cls._get_lines(buffer))
 
         return cls(
             file=getattr(buffer, 'name', None),
-            captions=captions,
-            styles=styles
+            captions=output.captions,
+            styles=output.styles,
+            header_comments=output.header_comments,
+            footer_comments=output.footer_comments
             )
 
     @classmethod
@@ -175,11 +183,13 @@ class WebVTT:
         :param string: the captions in a string
         :returns: a `WebVTT` instance
         """
-        captions, styles = vtt.parse(cls._get_lines(string.splitlines()))
+        output = vtt.parse(cls._get_lines(string.splitlines()))
         return cls(
-            captions=captions,
-            styles=styles
-            )
+            captions=output.captions,
+            styles=output.styles,
+            header_comments=output.header_comments,
+            footer_comments=output.footer_comments
+        )
 
     @staticmethod
     def _get_lines(lines: typing.Iterable[str]) -> typing.List[str]:
@@ -256,7 +266,13 @@ class WebVTT:
             if add_bom and encoding in utils.CODEC_BOMS:
                 f.write(utils.CODEC_BOMS[encoding].decode(encoding))
 
-            vtt.write(f, self.captions)
+            vtt.write(
+                f,
+                self.captions,
+                self.styles,
+                self.header_comments,
+                self.footer_comments
+                )
 
     def save_as_srt(
             self,
@@ -289,8 +305,13 @@ class WebVTT:
         :raises MissingFilenameError: if output cannot be determined
         """
         if format == 'vtt':
-            return vtt.write(f, self.captions)
-        elif format == 'srt':
+            return vtt.write(f,
+                             self.captions,
+                             self.styles,
+                             self.header_comments,
+                             self.footer_comments
+                             )
+        if format == 'srt':
             return srt.write(f, self.captions)
 
         raise ValueError(f'Format {format} is not supported.')
@@ -335,4 +356,9 @@ class WebVTT:
         This property is useful in cases where the webvtt content is needed
         but no file-like destination is required. Storage in DB for instance.
         """
-        return vtt.to_str(self.captions)
+        return vtt.to_str(
+            self.captions,
+            self.styles,
+            self.header_comments,
+            self.footer_comments
+            )

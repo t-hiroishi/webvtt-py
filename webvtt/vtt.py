@@ -2,9 +2,40 @@
 
 import re
 import typing
+from dataclasses import dataclass
+
 from .errors import MalformedFileError
 from .models import Caption, Style
 from . import utils
+
+
+@dataclass
+class ParserOutput:
+    """Output of parser."""
+
+    styles: typing.List[Style]
+    captions: typing.List[Caption]
+    header_comments: typing.List[str]
+    footer_comments: typing.List[str]
+
+    @classmethod
+    def from_data(
+            cls,
+            data: typing.Mapping[str, typing.Any]
+            ) -> 'ParserOutput':
+        """
+        Return a `ParserOutput` instance from the provided data.
+
+        :param data: data from the parser
+        :returns: an instance of `ParserOutput`
+        """
+        items = data.get('items', [])
+        return cls(
+            captions=[it for it in items if isinstance(it, Caption)],
+            styles=[it for it in items if isinstance(it, Style)],
+            header_comments=data.get('header_comments', []),
+            footer_comments=data.get('footer_comments', [])
+            )
 
 
 class WebVTTCueBlock:
@@ -86,6 +117,21 @@ class WebVTTCueBlock:
 
         return cls(identifier, start, end, payload)
 
+    @staticmethod
+    def format_lines(caption: Caption) -> typing.List[str]:
+        """
+        Return the lines for a cue block.
+
+        :param caption: the `Caption` instance
+        :returns: list of lines for a cue block
+        """
+        return [
+            '',
+            *(identifier for identifier in {caption.identifier} if identifier),
+            f'{caption.start} --> {caption.end}',
+            *caption.lines
+        ]
+
 
 class WebVTTCommentBlock:
     """Representation of a comment block."""
@@ -126,6 +172,21 @@ class WebVTTCommentBlock:
         """
         match = cls.COMMENT_PATTERN.match('\n'.join(lines))
         return cls(text=match.group(1).strip() if match else '')
+
+    @staticmethod
+    def format_lines(lines: str) -> typing.List[str]:
+        """
+        Return the lines for a comment block.
+
+        :param lines: comment lines
+        :returns: list of lines for a comment block
+        """
+        list_of_lines = lines.split('\n')
+
+        if len(list_of_lines) == 1:
+            return [f'NOTE {lines}']
+
+        return ['NOTE', *list_of_lines]
 
 
 class WebVTTStyleBlock:
@@ -171,24 +232,30 @@ class WebVTTStyleBlock:
         match = cls.STYLE_PATTERN.match('\n'.join(lines))
         return cls(text=match.group(1).strip() if match else '')
 
+    @staticmethod
+    def format_lines(lines: typing.List[str]) -> typing.List[str]:
+        """
+        Return the lines for a style block.
+
+        :param lines: style lines
+        :returns: list of lines for a style block
+        """
+        return ['STYLE', *lines]
+
 
 def parse(
         lines: typing.Sequence[str]
-        ) -> typing.Tuple[typing.List[Caption], typing.List[Style]]:
+        ) -> ParserOutput:
     """
     Parse VTT captions from lines of text.
 
     :param lines: lines of text
-    :returns: tuple of a list of `Caption` objects and a list of `Style`
-    objects
+    :returns: object `ParserOutput` with all parsed items
     """
     if not is_valid_content(lines):
         raise MalformedFileError('Invalid format')
 
-    items = parse_items(lines)
-    return ([item for item in items if isinstance(item, Caption)],
-            [item for item in items if isinstance(item, Style)]
-            )
+    return parse_items(lines)
 
 
 def is_valid_content(lines: typing.Sequence[str]) -> bool:
@@ -203,13 +270,14 @@ def is_valid_content(lines: typing.Sequence[str]) -> bool:
 
 def parse_items(
         lines: typing.Sequence[str]
-        ) -> typing.List[typing.Union[Caption, Style]]:
+        ) -> ParserOutput:
     """
     Parse items from the text.
 
     :param lines: lines of text
-    :returns: a list of `Caption` objects or `Style` objects
+    :returns: an object `ParserOutput` with all parsed items
     """
+    header_comments: typing.List[str] = []
     items: typing.List[typing.Union[Caption, Style]] = []
     comments: typing.List[WebVTTCommentBlock] = []
 
@@ -222,12 +290,15 @@ def parse_items(
         elif WebVTTCommentBlock.is_valid(block_lines):
             comments.append(WebVTTCommentBlock.from_lines(block_lines))
 
-    if comments and items:
-        items[-1].comments.extend(
-            [comment.text for comment in comments]
-            )
+    if items:
+        header_comments, items[0].comments = items[0].comments, header_comments
 
-    return items
+    return ParserOutput.from_data(
+        {'items': items,
+         'header_comments': header_comments,
+         'footer_comments': [comment.text for comment in comments]
+         }
+        )
 
 
 def parse_item(
@@ -255,29 +326,75 @@ def parse_item(
 
 def write(
         f: typing.IO[str],
-        captions: typing.Iterable[Caption]
+        captions: typing.Iterable[Caption],
+        styles: typing.Iterable[Style],
+        header_comments: typing.Iterable[str],
+        footer_comments: typing.Iterable[str]
         ):
     """
     Write captions to an output.
 
     :param f: file or file-like object
     :param captions: Iterable of `Caption` objects
+    :param styles: Iterable of `Style` objects
+    :param header_comments: the comments for the header
+    :param footer_comments: the comments for the footer
     """
-    f.write(to_str(captions))
+    f.write(
+        to_str(captions,
+               styles,
+               header_comments,
+               footer_comments
+               )
+        )
 
 
-def to_str(captions: typing.Iterable[Caption]) -> str:
+def to_str(
+        captions: typing.Iterable[Caption],
+        styles: typing.Iterable[Style],
+        header_comments: typing.Iterable[str],
+        footer_comments: typing.Iterable[str]
+        ) -> str:
     """
     Convert captions to a string with webvtt format.
 
-    :returns: String of the captions with WebVTT format.
+    :param captions: the iterable of `Caption` objects
+    :param styles: the iterable of `Style` objects
+    :param header_comments: the comments for the header
+    :param footer_comments: the comments for the footer
+    :returns: String of the content in WebVTT format.
     """
     output = ['WEBVTT']
-    for caption in captions:
+
+    for comment in header_comments:
         output.extend([
             '',
-            *(identifier for identifier in {caption.identifier} if identifier),
-            f'{caption.start} --> {caption.end}',
-            *caption.lines
+            *WebVTTCommentBlock.format_lines(comment)
         ])
+
+    for style in styles:
+        for comment in style.comments:
+            output.extend([
+                '',
+                *WebVTTCommentBlock.format_lines(comment)
+            ])
+        output.extend([
+            '',
+            *WebVTTStyleBlock.format_lines(style.lines)
+            ])
+
+    for caption in captions:
+        for comment in caption.comments:
+            output.extend([
+                '',
+                *WebVTTCommentBlock.format_lines(comment)
+            ])
+        output.extend(WebVTTCueBlock.format_lines(caption))
+
+    for comment in footer_comments:
+        output.extend([
+            '',
+            *WebVTTCommentBlock.format_lines(comment)
+        ])
+
     return '\n'.join(output)
