@@ -62,7 +62,8 @@ class TestSegmenter(unittest.TestCase):
                 fileSequence6.webvtt
                 #EXT-X-ENDLIST
                 '''
-            ).lstrip())
+                ).lstrip()
+            )
         self.assertEqual(
             (output_path / 'fileSequence0.webvtt').read_text(),
             textwrap.dedent(
@@ -76,7 +77,8 @@ class TestSegmenter(unittest.TestCase):
                 00:00:07.000 --> 00:00:11.890
                 Caption text #2
                 '''
-            ).lstrip())
+                ).lstrip()
+            )
         self.assertEqual(
             (output_path / 'fileSequence1.webvtt').read_text(),
             textwrap.dedent(
@@ -93,7 +95,8 @@ class TestSegmenter(unittest.TestCase):
                 00:00:16.320 --> 00:00:21.580
                 Caption text #4
                 '''
-            ).lstrip())
+                ).lstrip()
+            )
         self.assertEqual(
             (output_path / 'fileSequence2.webvtt').read_text(),
             textwrap.dedent(
@@ -113,7 +116,8 @@ class TestSegmenter(unittest.TestCase):
                 00:00:27.280 --> 00:00:30.280
                 Caption text #7
                 '''
-            ).lstrip())
+                ).lstrip()
+            )
         self.assertEqual(
             (output_path / 'fileSequence3.webvtt').read_text(),
             textwrap.dedent(
@@ -133,7 +137,8 @@ class TestSegmenter(unittest.TestCase):
                 00:00:38.870 --> 00:00:45.000
                 Caption text #10
                 '''
-            ).lstrip())
+                ).lstrip()
+            )
         self.assertEqual(
             (output_path / 'fileSequence4.webvtt').read_text(),
             textwrap.dedent(
@@ -150,7 +155,8 @@ class TestSegmenter(unittest.TestCase):
                 00:00:47.000 --> 00:00:50.970
                 Caption text #12
                 '''
-            ).lstrip())
+                ).lstrip()
+            )
         self.assertEqual(
             (output_path / 'fileSequence5.webvtt').read_text(),
             textwrap.dedent(
@@ -170,7 +176,8 @@ class TestSegmenter(unittest.TestCase):
                 00:00:58.600 --> 00:01:01.350
                 Caption text #15
                 '''
-            ).lstrip())
+                ).lstrip()
+            )
         self.assertEqual(
             (output_path / 'fileSequence6.webvtt').read_text(),
             textwrap.dedent(
@@ -184,7 +191,8 @@ class TestSegmenter(unittest.TestCase):
                 00:01:01.350 --> 00:01:04.300
                 Caption text #16
                 '''
-            ).lstrip())
+                ).lstrip()
+            )
 
     def test_segmentation_with_custom_values(self):
         segmenter.segment(
@@ -224,7 +232,8 @@ class TestSegmenter(unittest.TestCase):
                 fileSequence2.webvtt
                 #EXT-X-ENDLIST
                 '''
-            ).lstrip())
+                ).lstrip()
+            )
         self.assertEqual(
             (output_path / 'fileSequence0.webvtt').read_text(),
             textwrap.dedent(
@@ -253,7 +262,8 @@ class TestSegmenter(unittest.TestCase):
                 00:00:27.280 --> 00:00:30.280
                 Caption text #7
                 '''
-            ).lstrip())
+                ).lstrip()
+            )
         self.assertEqual(
             (output_path / 'fileSequence1.webvtt').read_text(),
             textwrap.dedent(
@@ -288,7 +298,8 @@ class TestSegmenter(unittest.TestCase):
                 00:00:58.600 --> 00:01:01.350
                 Caption text #15
                 '''
-            ).lstrip())
+                ).lstrip()
+            )
         self.assertEqual(
             (output_path / 'fileSequence2.webvtt').read_text(),
             textwrap.dedent(
@@ -302,7 +313,8 @@ class TestSegmenter(unittest.TestCase):
                 00:01:01.350 --> 00:01:04.300
                 Caption text #16
                 '''
-            ).lstrip())
+                ).lstrip()
+            )
 
     def test_segment_with_no_captions(self):
         segmenter.segment(
@@ -326,5 +338,5 @@ class TestSegmenter(unittest.TestCase):
                 #EXT-X-PLAYLIST-TYPE:VOD
                 #EXT-X-ENDLIST
                 '''
-            ).lstrip())
-
+                ).lstrip()
+            )

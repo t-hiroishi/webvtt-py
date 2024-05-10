@@ -1,6 +1,5 @@
 import unittest
 import textwrap
-from datetime import time
 
 from webvtt import sbv
 from webvtt.errors import MalformedFileError
@@ -12,6 +11,12 @@ class TestSBVCueBlock(unittest.TestCase):
     def test_is_valid(self):
         self.assertTrue(sbv.SBVCueBlock.is_valid(textwrap.dedent('''
             00:00:00.500,00:00:07.000
+            Caption #1
+            ''').strip().split('\n'))
+            )
+
+        self.assertTrue(sbv.SBVCueBlock.is_valid(textwrap.dedent('''
+            0:0:0.500,0:0:7.000
             Caption #1
             ''').strip().split('\n'))
             )
@@ -64,19 +69,35 @@ class TestSBVCueBlock(unittest.TestCase):
                     Caption #1 line 1
                     Caption #1 line 2
                     ''').strip().split('\n')
-                                               )
+                    )
         self.assertEqual(
             cue_block.start,
-            time(hour=0, minute=0, second=0, microsecond=500000)
-        )
+            '00:00:00.500'
+            )
         self.assertEqual(
             cue_block.end,
-            time(hour=0, minute=0, second=7, microsecond=0)
-        )
+            '00:00:07.000'
+            )
         self.assertEqual(
             cue_block.payload,
             ['Caption #1 line 1', 'Caption #1 line 2']
-        )
+            )
+
+    def test_from_lines_shorter_timestamps(self):
+        cue_block = sbv.SBVCueBlock.from_lines(textwrap.dedent('''
+                    0:1:2.500,0:1:03.800
+                    Caption #1 line 1
+                    Caption #1 line 2
+                    ''').strip().split('\n')
+                    )
+        self.assertEqual(
+            cue_block.start,
+            '0:1:2.500'
+            )
+        self.assertEqual(
+            cue_block.end,
+            '0:1:03.800'
+            )
 
 
 class TestSBVModule(unittest.TestCase):
@@ -93,7 +114,7 @@ class TestSBVModule(unittest.TestCase):
                 00:00:07.000,00:00:11.890
                 Caption text #2
                 ''').strip().split('\n')
-            )
+                )
 
     def test_parse_captions(self):
         captions = sbv.parse(

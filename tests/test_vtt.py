@@ -372,7 +372,7 @@ class TestVTTModule(unittest.TestCase):
                   color: papayawhip;
                 }
                 ''').strip()
-        )
+            )
         self.assertEqual(
             str(styles[1].text),
             textwrap.dedent('''
@@ -380,7 +380,7 @@ class TestVTTModule(unittest.TestCase):
                   color: white;
                 }
                 ''').strip()
-        )
+            )
         self.assertEqual(
             styles[0].comments,
             []
@@ -426,7 +426,7 @@ class TestVTTModule(unittest.TestCase):
         styles = [
             Style('::cue(b) {\n  color: peachpuff;\n}'),
             Style('::cue {\n  color: papayawhip;\n}')
-        ]
+            ]
         captions[0].comments.append('Comment for the first caption')
         captions[1].comments.append('Comment for the second caption')
         styles[1].comments.append(
@@ -501,7 +501,7 @@ class TestVTTModule(unittest.TestCase):
         styles = [
             Style('::cue(b) {\n  color: peachpuff;\n}'),
             Style('::cue {\n  color: papayawhip;\n}')
-        ]
+            ]
         captions[0].comments.append('Comment for the first caption')
         captions[1].comments.append('Comment for the second caption')
         styles[1].comments.append(

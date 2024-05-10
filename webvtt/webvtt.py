@@ -3,12 +3,11 @@
 import os
 import typing
 import warnings
-from datetime import time
 
 from . import vtt, utils
 from . import srt
 from . import sbv
-from .models import Caption, Style
+from .models import Caption, Style, Timestamp
 from .errors import MissingFilenameError
 
 DEFAULT_ENCODING = 'utf-8'
@@ -318,18 +317,18 @@ class WebVTT:
 
     def iter_slice(
             self,
-            start_time: typing.Optional[typing.Union[str, time]] = None,
-            end_time: typing.Optional[typing.Union[str, time]] = None
+            start: typing.Optional[str] = None,
+            end: typing.Optional[str] = None
             ) -> typing.Generator[Caption, None, None]:
         """
         Iterate a slice of the captions based on a time range.
 
-        :param start_time: start time of the range
-        :param end_time: end time of the range
+        :param start: start timestamp of the range
+        :param end: end timestamp of the range
         :returns: generator of Captions
         """
-        start_time = utils.parse_timestamp(start_time) if start_time else None
-        end_time = utils.parse_timestamp(end_time) if end_time else None
+        start_time = Timestamp.from_string(start) if start else None
+        end_time = Timestamp.from_string(end) if end else None
 
         for caption in self.captions:
             if (

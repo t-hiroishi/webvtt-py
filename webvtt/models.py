@@ -2,10 +2,98 @@
 
 import re
 import typing
-from datetime import time
 
-from . import utils
 from .errors import MalformedCaptionError
+
+
+class Timestamp:
+    """Representation of a timestamp."""
+
+    PATTERN = re.compile(r'(?:(\d{1,2}):)?(\d{1,2}):(\d{1,2})\.(\d{3})')
+
+    def __init__(
+            self,
+            hours: int = 0,
+            minutes: int = 0,
+            seconds: int = 0,
+            milliseconds: int = 0
+            ):
+        """Initialize."""
+        self.hours = hours
+        self.minutes = minutes
+        self.seconds = seconds
+        self.milliseconds = milliseconds
+
+    def __str__(self):
+        """Return the string representation of the timestamp."""
+        return (
+            f'{self.hours:02d}:{self.minutes:02d}:{self.seconds:02d}'
+            f'.{self.milliseconds:03d}'
+            )
+
+    def to_tuple(self) -> typing.Tuple[int, int, int, int]:
+        """Return the timestamp in tuple form."""
+        return self.hours, self.minutes, self.seconds, self.milliseconds
+
+    def __repr__(self):
+        """Return the string representation of the caption."""
+        return (f'<{self.__class__.__name__} '
+                f'hours={self.hours} '
+                f'minutes={self.minutes} '
+                f'seconds={self.seconds} '
+                f'milliseconds={self.milliseconds}>'
+                )
+
+    def __eq__(self, other):
+        """Compare equality with other object."""
+        return self.to_tuple() == other.to_tuple()
+
+    def __ne__(self, other):
+        """Compare a not equality with other object."""
+        return self.to_tuple() != other.to_tuple()
+
+    def __gt__(self, other):
+        """Compare greater than with other object."""
+        return self.to_tuple() > other.to_tuple()
+
+    def __lt__(self, other):
+        """Compare less than with other object."""
+        return self.to_tuple() < other.to_tuple()
+
+    def __ge__(self, other):
+        """Compare greater or equal with other object."""
+        return self.to_tuple() >= other.to_tuple()
+
+    def __le__(self, other):
+        """Compare less or equal with other object."""
+        return self.to_tuple() <= other.to_tuple()
+
+    @classmethod
+    def from_string(cls, value: str) -> 'Timestamp':
+        """Return a `Timestamp` instance from a string value."""
+        if type(value) is not str:
+            raise MalformedCaptionError(f'Invalid timestamp {value!r}')
+
+        match = re.match(cls.PATTERN, value)
+        if not match:
+            raise MalformedCaptionError(f'Invalid timestamp {value!r}')
+
+        hours = int(match.group(1) or 0)
+        minutes = int(match.group(2))
+        seconds = int(match.group(3))
+        milliseconds = int(match.group(4))
+
+        if minutes > 59 or seconds > 59:
+            raise MalformedCaptionError(f'Invalid timestamp {value!r}')
+
+        return cls(hours, minutes, seconds, milliseconds)
+
+    def in_seconds(self) -> int:
+        """Return the timestamp in seconds."""
+        return (self.hours * 3600 +
+                self.minutes * 60 +
+                self.seconds
+                )
 
 
 class Caption:
@@ -14,8 +102,8 @@ class Caption:
     CUE_TEXT_TAGS = re.compile('<.*?>')
 
     def __init__(self,
-                 start: typing.Optional[typing.Union[str, time]] = None,
-                 end: typing.Optional[typing.Union[str, time]] = None,
+                 start: typing.Optional[str] = None,
+                 end: typing.Optional[str] = None,
                  text: typing.Optional[typing.Union[str,
                                                     typing.Sequence[str]
                                                     ]] = None,
@@ -30,8 +118,8 @@ class Caption:
         :param identifier: optional identifier
         """
         text = text or []
-        self.start = start or time()
-        self.end = end or time()
+        self.start = start or '00:00:00.000'
+        self.end = end or '00:00:00.000'
         self.identifier = identifier
         self.lines = (text.splitlines()
                       if isinstance(text, str)
@@ -69,32 +157,32 @@ class Caption:
     @property
     def start(self):
         """Return the start time of the caption."""
-        return self.format_timestamp(self.start_time)
+        return str(self.start_time)
 
     @start.setter
-    def start(self, value: typing.Union[str, time]):
+    def start(self, value: str):
         """Set the start time of the caption."""
-        self.start_time = self.parse_timestamp(value)
+        self.start_time = Timestamp.from_string(value)
 
     @property
     def end(self):
         """Return the end time of the caption."""
-        return self.format_timestamp(self.end_time)
+        return str(self.end_time)
 
     @end.setter
-    def end(self, value: typing.Union[str, time]):
+    def end(self, value: str):
         """Set the end time of the caption."""
-        self.end_time = self.parse_timestamp(value)
+        self.end_time = Timestamp.from_string(value)
 
     @property
     def start_in_seconds(self) -> int:
         """Return the start time of the caption in seconds."""
-        return self.time_in_seconds(self.start_time)
+        return self.start_time.in_seconds()
 
     @property
     def end_in_seconds(self):
         """Return the end time of the caption in seconds."""
-        return self.time_in_seconds(self.end_time)
+        return self.end_time.in_seconds()
 
     @property
     def raw_text(self) -> str:
@@ -115,29 +203,6 @@ class Caption:
                 )
 
         self.lines = value.splitlines()
-
-    @staticmethod
-    def parse_timestamp(value: typing.Union[str, time]) -> time:
-        """Parse the provided value as timestamp."""
-        try:
-            return utils.parse_timestamp(value)
-        except ValueError:
-            raise MalformedCaptionError(f'Invalid timestamp: {value}')
-
-    @staticmethod
-    def format_timestamp(time_obj: time) -> str:
-        """Format timestamp in string format."""
-        microseconds = int(time_obj.microsecond / 1000)
-        return f'{time_obj.strftime("%H:%M:%S")}.{microseconds:03d}'
-
-    @staticmethod
-    def time_in_seconds(time_obj: time) -> int:
-        """Return the time in seconds."""
-        return (time_obj.hour * 3600 +
-                time_obj.minute * 60 +
-                time_obj.second +
-                time_obj.microsecond // 1_000_000
-                )
 
 
 class Style:

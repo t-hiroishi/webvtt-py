@@ -1,7 +1,6 @@
 import unittest
 import io
 import textwrap
-from datetime import time
 
 from webvtt import srt
 from webvtt.errors import MalformedFileError
@@ -72,11 +71,11 @@ class TestSRTCueBlock(unittest.TestCase):
         self.assertEqual(cue_block.index, '1')
         self.assertEqual(
             cue_block.start,
-            time(hour=0, minute=0, second=0, microsecond=500000)
+            '00:00:00,500'
             )
         self.assertEqual(
             cue_block.end,
-            time(hour=0, minute=0, second=7, microsecond=0)
+            '00:00:07,000'
             )
         self.assertEqual(
             cue_block.payload,

@@ -2,7 +2,6 @@
 
 import typing
 import re
-from datetime import datetime, time
 
 from .models import Caption
 from .errors import MalformedFileError
@@ -19,8 +18,8 @@ class SRTCueBlock:
     def __init__(
             self,
             index: str,
-            start: time,
-            end: time,
+            start: str,
+            end: str,
             payload: typing.Sequence[str]
             ):
         """
@@ -67,13 +66,10 @@ class SRTCueBlock:
 
         match = re.match(cls.CUE_TIMINGS_PATTERN, lines[1])
         assert match is not None
-        start, end = map(lambda x: datetime.strptime(x, '%H:%M:%S,%f').time(),
-                         (match.group(1), match.group(2))
-                         )
 
         payload = lines[2:]
 
-        return cls(index, start, end, payload)
+        return cls(index, match.group(1), match.group(2), payload)
 
 
 def parse(lines: typing.Sequence[str]) -> typing.List[Caption]:
@@ -118,6 +114,9 @@ def parse_captions(lines: typing.Sequence[str]) -> typing.List[Caption]:
             continue
 
         cue_block = SRTCueBlock.from_lines(block_lines)
+        cue_block.start, cue_block.end = map(
+            lambda x: x.replace(',', '.'), (cue_block.start, cue_block.end))
+
         captions.append(Caption(cue_block.start,
                                 cue_block.end,
                                 cue_block.payload

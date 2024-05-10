@@ -2,7 +2,6 @@
 
 import typing
 import re
-from datetime import datetime, time
 
 from . import utils
 from .models import Caption
@@ -13,13 +12,13 @@ class SBVCueBlock:
     """Representation of a cue timing block."""
 
     CUE_TIMINGS_PATTERN = re.compile(
-        r'\s*(\d+:\d{2}:\d{2}.\d{3}),(\d+:\d{2}:\d{2}.\d{3})'
+        r'\s*(\d{1,2}:\d{1,2}:\d{1,2}.\d{3}),(\d{1,2}:\d{1,2}:\d{1,2}.\d{3})'
         )
 
     def __init__(
             self,
-            start: time,
-            end: time,
+            start: str,
+            end: str,
             payload: typing.Sequence[str]
             ):
         """
@@ -63,13 +62,10 @@ class SBVCueBlock:
         """
         match = re.match(cls.CUE_TIMINGS_PATTERN, lines[0])
         assert match is not None
-        start, end = map(lambda x: datetime.strptime(x, '%H:%M:%S.%f').time(),
-                         (match.group(1), match.group(2))
-                         )
 
         payload = lines[1:]
 
-        return cls(start, end, payload)
+        return cls(match.group(1), match.group(2), payload)
 
 
 def parse(lines: typing.Sequence[str]) -> typing.List[Caption]:

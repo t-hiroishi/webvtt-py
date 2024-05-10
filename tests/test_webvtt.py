@@ -5,7 +5,6 @@ import textwrap
 import warnings
 import tempfile
 import pathlib
-from datetime import time
 
 import webvtt
 from webvtt.models import Caption, Style
@@ -33,7 +32,8 @@ class TestWebVTT(unittest.TestCase):
 
             00:00:16.320 --> 00:00:21.580
             Caption text #4
-            """).strip())
+            """).strip()
+            )
         self.assertEqual(len(vtt), 4)
         self.assertEqual(
             str(vtt[0]),
@@ -114,7 +114,7 @@ class TestWebVTT(unittest.TestCase):
             webvtt.WebVTT().write,
             io.StringIO(),
             format='ttt'
-        )
+            )
 
     def test_save_captions(self):
         with tempfile.NamedTemporaryFile('w', suffix='.vtt') as f:
@@ -144,7 +144,7 @@ class TestWebVTT(unittest.TestCase):
                     New caption text line1
                     New caption text line2
                     ''').strip()
-            )
+                )
 
     def test_srt_conversion(self):
         with tempfile.TemporaryDirectory() as td:
@@ -272,7 +272,8 @@ class TestWebVTT(unittest.TestCase):
             \r
             00:00:11.890 --> 00:00:16.320\r
             Caption text #3\r
-        '''))
+        ''')
+        )
 
         self.assertEqual(
             len(webvtt.from_buffer(buffer).captions),
@@ -303,7 +304,7 @@ class TestWebVTT(unittest.TestCase):
         self.assertRaises(
             webvtt.errors.MissingFilenameError,
             webvtt.WebVTT().save
-        )
+            )
 
     def test_save_with_path_to_dir_no_filename(self):
         with tempfile.TemporaryDirectory() as td:
@@ -311,14 +312,14 @@ class TestWebVTT(unittest.TestCase):
                 webvtt.errors.MissingFilenameError,
                 webvtt.WebVTT().save,
                 td
-            )
+                )
 
     def test_set_styles_from_text(self):
         style = Style('::cue(b) {\n  color: peachpuff;\n}')
         self.assertListEqual(
             style.lines,
             ['::cue(b) {', '  color: peachpuff;', '}']
-        )
+            )
 
     def test_save_identifiers(self):
         with tempfile.NamedTemporaryFile('w', suffix='.vtt') as f:
@@ -398,8 +399,8 @@ class TestWebVTT(unittest.TestCase):
                     'last caption',
                     '00:00:27.280 --> 00:00:29.200',
                     'Caption text #7'
-                ]
-            )
+                    ]
+                )
 
     def test_content_formatting(self):
         """
@@ -436,7 +437,7 @@ class TestWebVTT(unittest.TestCase):
         self.assertEqual(
             repr(webvtt.read(test_file)),
             f"<WebVTT file='{test_file}' encoding='utf-8'>"
-        )
+            )
 
     def test_str(self):
         self.assertEqual(
@@ -459,33 +460,33 @@ class TestWebVTT(unittest.TestCase):
                 00:00:58.600 00:01:01.350 Caption text #15
                 00:01:01.350 00:01:04.300 Caption text #16
             """).strip()
-        )
+            )
 
     def test_parse_invalid_file(self):
         self.assertRaises(
             MalformedFileError,
             webvtt.read,
             PATH_TO_SAMPLES / 'invalid.vtt'
-        )
+            )
 
     def test_file_not_found(self):
         self.assertRaises(
             FileNotFoundError,
             webvtt.read,
             'nowhere'
-        )
+            )
 
     def test_total_length(self):
         self.assertEqual(
             webvtt.read(PATH_TO_SAMPLES / 'sample.vtt').total_length,
             64
-        )
+            )
 
     def test_total_length_no_captions(self):
         self.assertEqual(
             webvtt.WebVTT().total_length,
             0
-        )
+            )
 
     def test_parse_empty_file(self):
         self.assertRaises(
@@ -533,7 +534,7 @@ class TestWebVTT(unittest.TestCase):
         self.assertEqual(
             Caption(start='02:03:11.890').start_in_seconds,
             7391
-        )
+            )
 
     def test_captions_attribute(self):
         self.assertListEqual(webvtt.WebVTT().captions, [])
@@ -596,7 +597,7 @@ class TestWebVTT(unittest.TestCase):
             vtt.styles[0].text,
             '::cue {\n  background-image: linear-gradient(to bottom, '
             'dimgray, lightgray);\n  color: papayawhip;\n}'
-        )
+            )
 
     def test_parse_styles_with_comments(self):
         vtt = webvtt.read(PATH_TO_SAMPLES / 'styles_with_comments.vtt')
@@ -625,7 +626,7 @@ class TestWebVTT(unittest.TestCase):
             '::cue(b) {\n'
             '  color: peachpuff;\n'
             '}'
-        )
+            )
         self.assertListEqual(
             vtt.header_comments,
             ['Sample of comments with styles']
@@ -679,7 +680,8 @@ class TestWebVTT(unittest.TestCase):
             NOTE Copyright 2024
 
             NOTE this is the end of the file
-            """).strip())
+            """).strip()
+            )
 
         self.assertListEqual(
             vtt.header_comments,
@@ -731,7 +733,7 @@ class TestWebVTT(unittest.TestCase):
                 )
             vtt.styles.append(
                 Style('::cue(b) {\n  color: peachpuff;\n}')
-            )
+                )
             style = Style('::cue {\n  color: papayawhip;\n}')
             style.comments.append('Another style to test\nthe look and feel')
             style.comments.append('Please check')
@@ -741,7 +743,7 @@ class TestWebVTT(unittest.TestCase):
                         end='00:00:07.000',
                         text='Caption #1',
                         )
-            )
+                )
             caption = Caption(start='00:00:07.000',
                               end='00:00:11.890',
                               text='Caption #2'
@@ -809,11 +811,11 @@ class TestWebVTT(unittest.TestCase):
         self.assertEqual(
             vtt.captions[1].text,
             'Like a big-a pizza pie'
-        )
+            )
         self.assertEqual(
             vtt.captions[2].text,
             'That\'s amore'
-        )
+            )
 
     def test_parse_captions_with_bom(self):
         vtt = webvtt.read(PATH_TO_SAMPLES / 'captions_with_bom.vtt')
@@ -825,14 +827,14 @@ class TestWebVTT(unittest.TestCase):
         self.assertEqual(
             vtt.captions[-2].text,
             "Diez años no son suficientes\npara olvidarte..."
-        )
+            )
 
     def test_can_parse_youtube_dl_files(self):
         vtt = webvtt.read(PATH_TO_SAMPLES / 'youtube_dl.vtt')
         self.assertEqual(
             "this will happen is I'm telling\n ",
             vtt.captions[2].text
-        )
+            )
 
 
 class TestParseSRT(unittest.TestCase):
@@ -843,7 +845,7 @@ class TestParseSRT(unittest.TestCase):
             webvtt.from_srt,
             # We reuse this file as it is empty and serves the purpose.
             PATH_TO_SAMPLES / 'empty.vtt'
-        )
+            )
 
     def test_invalid_format(self):
         for i in range(1, 5):
@@ -851,13 +853,13 @@ class TestParseSRT(unittest.TestCase):
                 MalformedFileError,
                 webvtt.from_srt,
                 PATH_TO_SAMPLES / f'invalid_format{i}.srt'
-            )
+                )
 
     def test_total_length(self):
         self.assertEqual(
             webvtt.from_srt(PATH_TO_SAMPLES / 'sample.srt').total_length,
             23
-        )
+            )
 
     def test_parse_captions(self):
         self.assertTrue(
@@ -915,26 +917,26 @@ class TestParseSBV(unittest.TestCase):
             webvtt.from_sbv,
             # We reuse this file as it is empty and serves the purpose.
             PATH_TO_SAMPLES / 'empty.vtt'
-        )
+            )
 
     def test_invalid_format(self):
         self.assertRaises(
             MalformedFileError,
             webvtt.from_sbv,
             PATH_TO_SAMPLES / 'invalid_format.sbv'
-        )
+            )
 
     def test_total_length(self):
         self.assertEqual(
             webvtt.from_sbv(PATH_TO_SAMPLES / 'sample.sbv').total_length,
             16
-        )
+            )
 
     def test_parse_captions(self):
         self.assertEqual(
             len(webvtt.from_sbv(PATH_TO_SAMPLES / 'sample.sbv').captions),
             5
-        )
+            )
 
     def test_missing_timeframe_line(self):
         self.assertEqual(
@@ -978,11 +980,11 @@ class TestParseSBV(unittest.TestCase):
         self.assertEqual(
             vtt.captions[2].text,
             'Caption text #3 (line 1)\nCaption text #3 (line 2)'
-        )
+            )
         self.assertListEqual(
             vtt.captions[2].lines,
             ['Caption text #3 (line 1)', 'Caption text #3 (line 2)']
-        )
+            )
 
     def test_convert_from_srt_to_vtt_and_back_gives_same_file(self):
         with tempfile.NamedTemporaryFile('w', suffix='.srt') as f:
@@ -1032,7 +1034,7 @@ class TestParseSBV(unittest.TestCase):
                     00:00:16.320 --> 00:00:21.580
                     Caption text #4
                     ''').strip()
-            )
+                )
 
     def test_save_file_with_bom_removes_bom_if_requested(self):
         with tempfile.NamedTemporaryFile('r', suffix='.vtt') as f:
@@ -1056,7 +1058,7 @@ class TestParseSBV(unittest.TestCase):
                     00:00:16.320 --> 00:00:21.580
                     Caption text #4
                     ''').strip()
-            )
+                )
 
     def test_save_file_with_encoding(self):
         with tempfile.NamedTemporaryFile('rb', suffix='.vtt') as f:
@@ -1073,7 +1075,7 @@ class TestParseSBV(unittest.TestCase):
                     00:00:00.500 --> 00:00:07.000
                     Caption text #1
                     ''').strip()
-            )
+                )
 
     def test_save_file_with_encoding_and_bom(self):
         with tempfile.NamedTemporaryFile('rb', suffix='.vtt') as f:
@@ -1091,7 +1093,7 @@ class TestParseSBV(unittest.TestCase):
                     00:00:00.500 --> 00:00:07.000
                     Caption text #1
                     ''').strip()
-            )
+                )
 
     def test_save_new_file_utf_8_default_encoding_no_bom(self):
         with tempfile.NamedTemporaryFile('r', suffix='.vtt') as f:
@@ -1141,24 +1143,8 @@ class TestParseSBV(unittest.TestCase):
         vtt = webvtt.read(
                 PATH_TO_SAMPLES / 'sample.vtt'
                 )
-        slice_of_captions = vtt.iter_slice(start_time=time(second=11),
-                                           end_time=time(second=27)
-                                           )
-        for expected_caption in (vtt.captions[2],
-                                 vtt.captions[3],
-                                 vtt.captions[4]
-                                 ):
-            self.assertIs(expected_caption, next(slice_of_captions))
-
-        with self.assertRaises(StopIteration):
-            next(slice_of_captions)
-
-    def test_iter_slice_timestamp_string(self):
-        vtt = webvtt.read(
-                PATH_TO_SAMPLES / 'sample.vtt'
-                )
-        slice_of_captions = vtt.iter_slice(start_time='00:00:11.000',
-                                           end_time='00:00:27.000'
+        slice_of_captions = vtt.iter_slice(start='00:00:11.000',
+                                           end='00:00:27.000'
                                            )
         for expected_caption in (vtt.captions[2],
                                  vtt.captions[3],
@@ -1173,7 +1159,7 @@ class TestParseSBV(unittest.TestCase):
         vtt = webvtt.read(
                 PATH_TO_SAMPLES / 'sample.vtt'
                 )
-        slice_of_captions = vtt.iter_slice(end_time=time(second=27))
+        slice_of_captions = vtt.iter_slice(end='00:00:27.000')
         for expected_caption in (vtt.captions[0],
                                  vtt.captions[1],
                                  vtt.captions[2],
@@ -1189,7 +1175,7 @@ class TestParseSBV(unittest.TestCase):
         vtt = webvtt.read(
                 PATH_TO_SAMPLES / 'sample.vtt'
                 )
-        slice_of_captions = vtt.iter_slice(start_time=time(second=47))
+        slice_of_captions = vtt.iter_slice(start='00:00:47.000')
         for expected_caption in (vtt.captions[11],
                                  vtt.captions[12],
                                  vtt.captions[13],
