@@ -17,7 +17,7 @@ PATH_TO_SAMPLES = pathlib.Path(__file__).resolve().parent / 'samples'
 class TestWebVTT(unittest.TestCase):
 
     def test_from_string(self):
-        vtt = webvtt.WebVTT.from_string(textwrap.dedent("""
+        vtt = webvtt.from_string(textwrap.dedent("""
             WEBVTT
 
             00:00:00.500 --> 00:00:07.000

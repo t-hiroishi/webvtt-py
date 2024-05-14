@@ -4,16 +4,18 @@ webvtt-py
 .. image:: https://img.shields.io/pypi/v/webvtt-py.svg
         :target: https://pypi.python.org/pypi/webvtt-py
 
-.. image:: https://travis-ci.org/glut23/webvtt-py.svg?branch=master
-        :target: https://travis-ci.org/glut23/webvtt-py
+.. image:: https://img.shields.io/pypi/pyversions/webvtt-py.svg
+        :target: https://pypi.python.org/pypi/webvtt-py
+
+.. image:: https://img.shields.io/github/actions/workflow/status/glut23/webvtt-py/ci.yml
+
+.. image:: https://codecov.io/gh/glut23/webvtt-py/branch/master/graphs/badge.svg?branch=master
 
 .. image:: https://readthedocs.org/projects/webvtt-py/badge/?version=latest
         :target: http://webvtt-py.readthedocs.io/en/latest/?badge=latest
         :alt: Documentation Status
 
 ``webvtt-py`` is a Python module for reading/writing WebVTT_ caption files. It also features caption segmentation useful when captioning `HLS videos`_.
-
-Requires Python 3.4+.
 
 Documentation is available at http://webvtt-py.readthedocs.io.
 
@@ -69,9 +71,10 @@ Supported formats:
 CLI
 ---
 Caption segmentation is also available from the command line:
+
 ::
 
-    $ webvtt segment captions.vtt --output destination/directoy
+    $ webvtt segment captions.vtt --output output/path
 
 License
 -------

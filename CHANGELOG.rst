@@ -1,6 +1,18 @@
 History
 =======
 
+0.5.0 (Unreleased)
+------------------
+
+* Added styles support
+* Added comments support
+* Added from_string
+* Added iterate over a slice of captions
+* Full refactor of the library without breaking changes
+* Improved BOM support allowing to keep the BOM or remove it
+* Deprecated read_buffer in favor of from_buffer
+* Removed support for old versions of Python: 3.4, 3.5 and 3.6
+
 0.4.6 (18-11-2020)
 ------------------
 
