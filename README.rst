@@ -4,8 +4,12 @@ webvtt-py
 .. image:: https://img.shields.io/pypi/v/webvtt-py.svg
         :target: https://pypi.python.org/pypi/webvtt-py
 
+.. image:: https://img.shields.io/pypi/pyversions/webvtt-py.svg
+        :target: https://pypi.python.org/pypi/webvtt-py
+
 .. image:: https://img.shields.io/github/actions/workflow/status/glut23/webvtt-py/ci.yml
-   :alt: GitHub Actions Workflow Status
+
+.. image:: https://codecov.io/gh/glut23/webvtt-py/branch/master/graphs/badge.svg?branch=master
 
 .. image:: https://readthedocs.org/projects/webvtt-py/badge/?version=latest
         :target: http://webvtt-py.readthedocs.io/en/latest/?badge=latest
