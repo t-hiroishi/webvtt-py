@@ -1,47 +1,59 @@
-"""
-Usage:
-  webvtt segment <file> [--target-duration=SECONDS] [--mpegts=OFFSET] [--output=<dir>]
-  webvtt -h | --help
-  webvtt --version
+"""CLI module."""
 
-Options:
-  -h --help                  Show this screen.
-  --version                  Show version.
-  --target-duration=SECONDS  Target duration of each segment in seconds [default: 10].
-  --mpegts=OFFSET            Presentation timestamp value [default: 900000].
-  --output=<dir>             Output to directory [default: ./].
+import argparse
+import typing
 
-Examples:
-  webvtt segment captions.vtt --output destination/directory
-"""
-
-from docopt import docopt
-
-from . import WebVTTSegmenter, __version__
+from . import segmenter
 
 
-def main():
-    """Main entry point for CLI commands."""
-    options = docopt(__doc__, version=__version__)
-    if options['segment']:
-        segment(
-            options['<file>'],
-            options['--output'],
-            options['--target-duration'],
-            options['--mpegts'],
+def main(argv: typing.Optional[typing.Sequence] = None):
+    """
+    Segment WebVTT file from command line.
+
+    :param argv: command line arguments
+    """
+    arguments = argparse.ArgumentParser(
+        description='Segment WebVTT files.'
+        )
+    arguments.add_argument(
+        'command',
+        choices=['segment'],
+        help='command to perform'
+        )
+    arguments.add_argument(
+        'file',
+        metavar='PATH',
+        help='WebVTT file'
+        )
+    arguments.add_argument(
+        '-o', '--output',
+        metavar='PATH',
+        help='output directory'
+        )
+    arguments.add_argument(
+        '-d', '--target-duration',
+        metavar='NUMBER',
+        type=int,
+        default=segmenter.DEFAULT_SECONDS,
+        help='target duration of each segment in seconds, default: 10'
+        )
+    arguments.add_argument(
+        '-m', '--mpegts',
+        metavar='NUMBER',
+        type=int,
+        default=segmenter.DEFAULT_MPEGTS,
+        help='presentation timestamp value, default: 900000'
+        )
+
+    args = arguments.parse_args(argv)
+
+    segmenter.segment(
+        args.file,
+        args.output,
+        args.target_duration,
+        args.mpegts
         )
 
 
-def segment(f, output, target_duration, mpegts):
-    """Segment command."""
-    try:
-        target_duration = int(target_duration)
-    except ValueError:
-        exit('Error: Invalid target duration.')
-
-    try:
-        mpegts = int(mpegts)
-    except ValueError:
-        exit('Error: Invalid MPEGTS value.')
-
-    WebVTTSegmenter().segment(f, output, target_duration, mpegts)
+if __name__ == '__main__':
+    main()  # pragma: no cover

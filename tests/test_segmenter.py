@@ -1,180 +1,342 @@
 import os
 import unittest
-from shutil import rmtree
+import tempfile
+import pathlib
+import textwrap
 
-from webvtt import WebVTTSegmenter, Caption
-from webvtt.errors import InvalidCaptionsError
-from webvtt import WebVTT
+from webvtt import segmenter
 
-BASE_DIR = os.path.dirname(__file__)
-SUBTITLES_DIR = os.path.join(BASE_DIR, 'subtitles')
-OUTPUT_DIR = os.path.join(BASE_DIR, 'output')
+PATH_TO_SAMPLES = pathlib.Path(__file__).resolve().parent / 'samples'
 
 
-class WebVTTSegmenterTestCase(unittest.TestCase):
+class TestSegmenter(unittest.TestCase):
 
     def setUp(self):
-        self.segmenter = WebVTTSegmenter()
+        self.temp_dir = tempfile.TemporaryDirectory()
 
     def tearDown(self):
-        if os.path.exists(OUTPUT_DIR):
-            rmtree(OUTPUT_DIR)
+        self.temp_dir.cleanup()
 
-    def _parse_captions(self, filename):
-        self.webvtt = WebVTT().read(os.path.join(SUBTITLES_DIR, filename))
+    def test_segmentation_with_defaults(self):
+        segmenter.segment(PATH_TO_SAMPLES / 'sample.vtt', self.temp_dir.name)
 
-    def test_invalid_captions(self):
-        self.assertRaises(
-            FileNotFoundError,
-            self.segmenter.segment,
-            'text'
-        )
+        _, dirs, files = next(os.walk(self.temp_dir.name))
 
-        self.assertRaises(
-            InvalidCaptionsError,
-            self.segmenter.segment,
-            10
-        )
+        self.assertEqual(len(dirs), 0)
+        self.assertEqual(len(files), 8)
 
-    def test_single_invalid_caption(self):
-        self.assertRaises(
-            InvalidCaptionsError,
-            self.segmenter.segment,
-            [Caption(), Caption(), 'text', Caption()]
-        )
+        for expected_file in ('prog_index.m3u8',
+                              'fileSequence0.webvtt',
+                              'fileSequence1.webvtt',
+                              'fileSequence2.webvtt',
+                              'fileSequence3.webvtt',
+                              'fileSequence4.webvtt',
+                              'fileSequence5.webvtt',
+                              'fileSequence6.webvtt',
+                              ):
+            self.assertIn(expected_file, files)
 
-    def test_total_segments(self):
-        # segment with default 10 seconds
-        self._parse_captions('sample.vtt')
-        self.segmenter.segment(self.webvtt, OUTPUT_DIR)
-        self.assertEqual(self.segmenter.total_segments, 7)
+        output_path = pathlib.Path(self.temp_dir.name)
 
-        # segment with custom 30 seconds
-        self._parse_captions('sample.vtt')
-        self.segmenter.segment(self.webvtt, OUTPUT_DIR, 30)
-        self.assertEqual(self.segmenter.total_segments, 3)
-
-    def test_output_folder_is_created(self):
-        self.assertFalse(os.path.exists(OUTPUT_DIR))
-        self._parse_captions('sample.vtt')
-        self.segmenter.segment(self.webvtt, OUTPUT_DIR)
-        self.assertTrue(os.path.exists(OUTPUT_DIR))
-
-    def test_segmentation_files_exist(self):
-        self._parse_captions('sample.vtt')
-        self.segmenter.segment(self.webvtt, OUTPUT_DIR)
-        for i in range(7):
-            self.assertTrue(
-                os.path.exists(os.path.join(OUTPUT_DIR, 'fileSequence{}.webvtt'.format(i)))
+        self.assertEqual(
+            (output_path / 'prog_index.m3u8').read_text(),
+            textwrap.dedent(
+                '''
+                #EXTM3U
+                #EXT-X-TARGETDURATION:10
+                #EXT-X-VERSION:3
+                #EXT-X-PLAYLIST-TYPE:VOD
+                #EXTINF:30.00000
+                fileSequence0.webvtt
+                #EXTINF:30.00000
+                fileSequence1.webvtt
+                #EXTINF:30.00000
+                fileSequence2.webvtt
+                #EXTINF:30.00000
+                fileSequence3.webvtt
+                #EXTINF:30.00000
+                fileSequence4.webvtt
+                #EXTINF:30.00000
+                fileSequence5.webvtt
+                #EXTINF:30.00000
+                fileSequence6.webvtt
+                #EXT-X-ENDLIST
+                '''
+                ).lstrip()
             )
-        self.assertTrue(os.path.exists(os.path.join(OUTPUT_DIR, 'prog_index.m3u8')))
+        self.assertEqual(
+            (output_path / 'fileSequence0.webvtt').read_text(),
+            textwrap.dedent(
+                '''
+                WEBVTT
+                X-TIMESTAMP-MAP=MPEGTS:900000,LOCAL:00:00:00.000
 
-    def test_segmentation(self):
-        self._parse_captions('sample.vtt')
-        self.segmenter.segment(self.webvtt, OUTPUT_DIR)
+                00:00:00.500 --> 00:00:07.000
+                Caption text #1
 
-        # segment 1 should have caption 1 and 2
-        self.assertEqual(len(self.segmenter.segments[0]), 2)
-        self.assertIn(self.webvtt.captions[0], self.segmenter.segments[0])
-        self.assertIn(self.webvtt.captions[1], self.segmenter.segments[0])
-        # segment 2 should have caption 2 again (overlap), 3 and 4
-        self.assertEqual(len(self.segmenter.segments[1]), 3)
-        self.assertIn(self.webvtt.captions[2], self.segmenter.segments[1])
-        self.assertIn(self.webvtt.captions[3], self.segmenter.segments[1])
-        # segment 3 should have caption 4 again (overlap), 5, 6 and 7
-        self.assertEqual(len(self.segmenter.segments[2]), 4)
-        self.assertIn(self.webvtt.captions[3], self.segmenter.segments[2])
-        self.assertIn(self.webvtt.captions[4], self.segmenter.segments[2])
-        self.assertIn(self.webvtt.captions[5], self.segmenter.segments[2])
-        self.assertIn(self.webvtt.captions[6], self.segmenter.segments[2])
-        # segment 4 should have caption 7 again (overlap), 8, 9 and 10
-        self.assertEqual(len(self.segmenter.segments[3]), 4)
-        self.assertIn(self.webvtt.captions[6], self.segmenter.segments[3])
-        self.assertIn(self.webvtt.captions[7], self.segmenter.segments[3])
-        self.assertIn(self.webvtt.captions[8], self.segmenter.segments[3])
-        self.assertIn(self.webvtt.captions[9], self.segmenter.segments[3])
-        # segment 5 should have caption 10 again (overlap), 11 and 12
-        self.assertEqual(len(self.segmenter.segments[4]), 3)
-        self.assertIn(self.webvtt.captions[9], self.segmenter.segments[4])
-        self.assertIn(self.webvtt.captions[10], self.segmenter.segments[4])
-        self.assertIn(self.webvtt.captions[11], self.segmenter.segments[4])
-        # segment 6 should have caption 12 again (overlap), 13, 14 and 15
-        self.assertEqual(len(self.segmenter.segments[5]), 4)
-        self.assertIn(self.webvtt.captions[11], self.segmenter.segments[5])
-        self.assertIn(self.webvtt.captions[12], self.segmenter.segments[5])
-        self.assertIn(self.webvtt.captions[13], self.segmenter.segments[5])
-        self.assertIn(self.webvtt.captions[14], self.segmenter.segments[5])
-        # segment 7 should have caption 15 again (overlap) and 16
-        self.assertEqual(len(self.segmenter.segments[6]), 2)
-        self.assertIn(self.webvtt.captions[14], self.segmenter.segments[6])
-        self.assertIn(self.webvtt.captions[15], self.segmenter.segments[6])
+                00:00:07.000 --> 00:00:11.890
+                Caption text #2
+                '''
+                ).lstrip()
+            )
+        self.assertEqual(
+            (output_path / 'fileSequence1.webvtt').read_text(),
+            textwrap.dedent(
+                '''
+                WEBVTT
+                X-TIMESTAMP-MAP=MPEGTS:900000,LOCAL:00:00:00.000
 
-    def test_segment_content(self):
-        self._parse_captions('sample.vtt')
-        self.segmenter.segment(self.webvtt, OUTPUT_DIR, 10)
+                00:00:07.000 --> 00:00:11.890
+                Caption text #2
 
-        with open(os.path.join(OUTPUT_DIR, 'fileSequence0.webvtt'), 'r', encoding='utf-8') as f:
-            lines = [line.rstrip() for line in f.readlines()]
+                00:00:11.890 --> 00:00:16.320
+                Caption text #3
 
-        expected_lines = [
-            'WEBVTT',
-            'X-TIMESTAMP-MAP=MPEGTS:900000,LOCAL:00:00:00.000',
-            '',
-            '00:00:00.500 --> 00:00:07.000',
-            'Caption text #1',
-            '',
-            '00:00:07.000 --> 00:00:11.890',
-            'Caption text #2'
-        ]
+                00:00:16.320 --> 00:00:21.580
+                Caption text #4
+                '''
+                ).lstrip()
+            )
+        self.assertEqual(
+            (output_path / 'fileSequence2.webvtt').read_text(),
+            textwrap.dedent(
+                '''
+                WEBVTT
+                X-TIMESTAMP-MAP=MPEGTS:900000,LOCAL:00:00:00.000
 
-        self.assertListEqual(lines, expected_lines)
+                00:00:16.320 --> 00:00:21.580
+                Caption text #4
 
-    def test_manifest_content(self):
-        self._parse_captions('sample.vtt')
-        self.segmenter.segment(self.webvtt, OUTPUT_DIR, 10)
+                00:00:21.580 --> 00:00:23.880
+                Caption text #5
 
-        with open(os.path.join(OUTPUT_DIR, 'prog_index.m3u8'), 'r', encoding='utf-8') as f:
-            lines = [line.rstrip() for line in f.readlines()]
+                00:00:23.880 --> 00:00:27.280
+                Caption text #6
 
-            expected_lines = [
-                '#EXTM3U',
-                '#EXT-X-TARGETDURATION:{}'.format(self.segmenter.seconds),
-                '#EXT-X-VERSION:3',
-                '#EXT-X-PLAYLIST-TYPE:VOD',
-                ]
+                00:00:27.280 --> 00:00:30.280
+                Caption text #7
+                '''
+                ).lstrip()
+            )
+        self.assertEqual(
+            (output_path / 'fileSequence3.webvtt').read_text(),
+            textwrap.dedent(
+                '''
+                WEBVTT
+                X-TIMESTAMP-MAP=MPEGTS:900000,LOCAL:00:00:00.000
 
-            for i in range(7):
-                expected_lines.extend([
-                    '#EXTINF:30.00000',
-                    'fileSequence{}.webvtt'.format(i)
-                ])
+                00:00:27.280 --> 00:00:30.280
+                Caption text #7
 
-            expected_lines.append('#EXT-X-ENDLIST')
+                00:00:30.280 --> 00:00:36.510
+                Caption text #8
 
-            for index, line in enumerate(expected_lines):
-                self.assertEqual(lines[index], line)
+                00:00:36.510 --> 00:00:38.870
+                Caption text #9
 
-    def test_customize_mpegts(self):
-        self._parse_captions('sample.vtt')
-        self.segmenter.segment(self.webvtt, OUTPUT_DIR, mpegts=800000)
+                00:00:38.870 --> 00:00:45.000
+                Caption text #10
+                '''
+                ).lstrip()
+            )
+        self.assertEqual(
+            (output_path / 'fileSequence4.webvtt').read_text(),
+            textwrap.dedent(
+                '''
+                WEBVTT
+                X-TIMESTAMP-MAP=MPEGTS:900000,LOCAL:00:00:00.000
 
-        with open(os.path.join(OUTPUT_DIR, 'fileSequence0.webvtt'), 'r', encoding='utf-8') as f:
-            lines = f.readlines()
-            self.assertIn('MPEGTS:800000', lines[1])
+                00:00:38.870 --> 00:00:45.000
+                Caption text #10
 
-    def test_segment_from_file(self):
-        self.segmenter.segment(os.path.join(SUBTITLES_DIR, 'sample.vtt'), OUTPUT_DIR),
-        self.assertEqual(self.segmenter.total_segments, 7)
+                00:00:45.000 --> 00:00:47.000
+                Caption text #11
+
+                00:00:47.000 --> 00:00:50.970
+                Caption text #12
+                '''
+                ).lstrip()
+            )
+        self.assertEqual(
+            (output_path / 'fileSequence5.webvtt').read_text(),
+            textwrap.dedent(
+                '''
+                WEBVTT
+                X-TIMESTAMP-MAP=MPEGTS:900000,LOCAL:00:00:00.000
+
+                00:00:47.000 --> 00:00:50.970
+                Caption text #12
+
+                00:00:50.970 --> 00:00:54.440
+                Caption text #13
+
+                00:00:54.440 --> 00:00:58.600
+                Caption text #14
+
+                00:00:58.600 --> 00:01:01.350
+                Caption text #15
+                '''
+                ).lstrip()
+            )
+        self.assertEqual(
+            (output_path / 'fileSequence6.webvtt').read_text(),
+            textwrap.dedent(
+                '''
+                WEBVTT
+                X-TIMESTAMP-MAP=MPEGTS:900000,LOCAL:00:00:00.000
+
+                00:00:58.600 --> 00:01:01.350
+                Caption text #15
+
+                00:01:01.350 --> 00:01:04.300
+                Caption text #16
+                '''
+                ).lstrip()
+            )
+
+    def test_segmentation_with_custom_values(self):
+        segmenter.segment(
+            webvtt_path=PATH_TO_SAMPLES / 'sample.vtt',
+            output=self.temp_dir.name,
+            seconds=30,
+            mpegts=800000
+            )
+
+        _, dirs, files = next(os.walk(self.temp_dir.name))
+
+        self.assertEqual(len(dirs), 0)
+        self.assertEqual(len(files), 4)
+
+        for expected_file in ('prog_index.m3u8',
+                              'fileSequence0.webvtt',
+                              'fileSequence1.webvtt',
+                              'fileSequence2.webvtt',
+                              ):
+            self.assertIn(expected_file, files)
+
+        output_path = pathlib.Path(self.temp_dir.name)
+
+        self.assertEqual(
+            (output_path / 'prog_index.m3u8').read_text(),
+            textwrap.dedent(
+                '''
+                #EXTM3U
+                #EXT-X-TARGETDURATION:30
+                #EXT-X-VERSION:3
+                #EXT-X-PLAYLIST-TYPE:VOD
+                #EXTINF:30.00000
+                fileSequence0.webvtt
+                #EXTINF:30.00000
+                fileSequence1.webvtt
+                #EXTINF:30.00000
+                fileSequence2.webvtt
+                #EXT-X-ENDLIST
+                '''
+                ).lstrip()
+            )
+        self.assertEqual(
+            (output_path / 'fileSequence0.webvtt').read_text(),
+            textwrap.dedent(
+                '''
+                WEBVTT
+                X-TIMESTAMP-MAP=MPEGTS:800000,LOCAL:00:00:00.000
+
+                00:00:00.500 --> 00:00:07.000
+                Caption text #1
+
+                00:00:07.000 --> 00:00:11.890
+                Caption text #2
+
+                00:00:11.890 --> 00:00:16.320
+                Caption text #3
+
+                00:00:16.320 --> 00:00:21.580
+                Caption text #4
+
+                00:00:21.580 --> 00:00:23.880
+                Caption text #5
+
+                00:00:23.880 --> 00:00:27.280
+                Caption text #6
+
+                00:00:27.280 --> 00:00:30.280
+                Caption text #7
+                '''
+                ).lstrip()
+            )
+        self.assertEqual(
+            (output_path / 'fileSequence1.webvtt').read_text(),
+            textwrap.dedent(
+                '''
+                WEBVTT
+                X-TIMESTAMP-MAP=MPEGTS:800000,LOCAL:00:00:00.000
+
+                00:00:27.280 --> 00:00:30.280
+                Caption text #7
+
+                00:00:30.280 --> 00:00:36.510
+                Caption text #8
+
+                00:00:36.510 --> 00:00:38.870
+                Caption text #9
+
+                00:00:38.870 --> 00:00:45.000
+                Caption text #10
+
+                00:00:45.000 --> 00:00:47.000
+                Caption text #11
+
+                00:00:47.000 --> 00:00:50.970
+                Caption text #12
+
+                00:00:50.970 --> 00:00:54.440
+                Caption text #13
+
+                00:00:54.440 --> 00:00:58.600
+                Caption text #14
+
+                00:00:58.600 --> 00:01:01.350
+                Caption text #15
+                '''
+                ).lstrip()
+            )
+        self.assertEqual(
+            (output_path / 'fileSequence2.webvtt').read_text(),
+            textwrap.dedent(
+                '''
+                WEBVTT
+                X-TIMESTAMP-MAP=MPEGTS:800000,LOCAL:00:00:00.000
+
+                00:00:58.600 --> 00:01:01.350
+                Caption text #15
+
+                00:01:01.350 --> 00:01:04.300
+                Caption text #16
+                '''
+                ).lstrip()
+            )
 
     def test_segment_with_no_captions(self):
-        self.segmenter.segment(os.path.join(SUBTITLES_DIR, 'no_captions.vtt'), OUTPUT_DIR),
-        self.assertEqual(self.segmenter.total_segments, 0)
+        segmenter.segment(
+            webvtt_path=PATH_TO_SAMPLES / 'no_captions.vtt',
+            output=self.temp_dir.name
+            )
 
-    def test_total_segments_readonly(self):
-        self.assertRaises(
-            AttributeError,
-            setattr,
-            WebVTTSegmenter(),
-            'total_segments',
-            5
-        )
+        _, dirs, files = next(os.walk(self.temp_dir.name))
+
+        self.assertEqual(len(dirs), 0)
+        self.assertEqual(len(files), 1)
+        self.assertIn('prog_index.m3u8', files)
+
+        self.assertEqual(
+            (pathlib.Path(self.temp_dir.name) / 'prog_index.m3u8').read_text(),
+            textwrap.dedent(
+                '''
+                #EXTM3U
+                #EXT-X-TARGETDURATION:10
+                #EXT-X-VERSION:3
+                #EXT-X-PLAYLIST-TYPE:VOD
+                #EXT-X-ENDLIST
+                '''
+                ).lstrip()
+            )
