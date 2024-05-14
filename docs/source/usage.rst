@@ -27,7 +27,7 @@ Reading WebVTT caption files
 
     # caption identifiers
     >>> vtt[0].identifier
-    'crédit de transcription'
+    'chapter 1'
 
 
 Reading WebVTT caption files from a file-like object
