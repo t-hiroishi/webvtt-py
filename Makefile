@@ -5,7 +5,7 @@ build:
 	twine check dist/*
 
 release_test: build
-	twine -r testpypi upload dist/*
+	twine upload -r testpypi dist/*
 
 release: build
 	twine upload dist/*
