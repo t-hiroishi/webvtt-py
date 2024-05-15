@@ -2,12 +2,12 @@
 
 import sys
 from pathlib import Path
+from datetime import date
 
 # Add parent dir to path
-parent_directory = Path(__file__).resolve().parent
+parent_directory = Path(__file__).parent.parent.parent.resolve()
 sys.path.append(str(parent_directory))
 
-from datetime import date
 import webvtt  # noqa
 
 # -- Project information
