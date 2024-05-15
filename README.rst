@@ -1,19 +1,7 @@
 webvtt-py
 =========
 
-.. image:: https://img.shields.io/pypi/v/webvtt-py.svg
-        :target: https://pypi.python.org/pypi/webvtt-py
-
-.. image:: https://img.shields.io/pypi/pyversions/webvtt-py.svg
-        :target: https://pypi.python.org/pypi/webvtt-py
-
-.. image:: https://img.shields.io/github/actions/workflow/status/glut23/webvtt-py/ci.yml
-
-.. image:: https://codecov.io/gh/glut23/webvtt-py/branch/master/graphs/badge.svg?branch=master
-
-.. image:: https://readthedocs.org/projects/webvtt-py/badge/?version=latest
-        :target: http://webvtt-py.readthedocs.io/en/latest/?badge=latest
-        :alt: Documentation Status
+|pypi| |pyversions| |license| |coverage| |build-status| |docs-status| |downloads|
 
 ``webvtt-py`` is a Python module for reading/writing WebVTT_ caption files. It also features caption segmentation useful when captioning `HLS videos`_.
 
@@ -80,3 +68,28 @@ License
 -------
 
 Licensed under the MIT License.
+
+.. |pypi| image:: https://img.shields.io/pypi/v/webvtt-py.svg
+    :target: https://pypi.python.org/pypi/webvtt-py
+
+.. |pyversions| image:: https://img.shields.io/pypi/pyversions/webvtt-py.svg
+    :alt: Supported Python versions
+    :target: https://pypi.python.org/pypi/webvtt-py
+
+.. |license| image:: https://img.shields.io/pypi/l/webvtt-py.svg
+    :alt: MIT License
+    :target: https://opensource.org/licenses/MIT
+
+.. |coverage| image:: https://codecov.io/gh/glut23/webvtt-py/graph/badge.svg?branch=master
+    :target: https://codecov.io/gh/glut23/webvtt-py
+
+.. |build-status| image:: https://github.com/glut23/webvtt-py/actions/workflows/ci.yml/badge.svg?branch=master
+    :target: https://github.com/glut23/webvtt-py/actions/workflows/ci.yml
+
+.. |docs-status| image:: https://readthedocs.org/projects/webvtt-py/badge/?version=latest
+    :target: http://webvtt-py.readthedocs.io/en/latest/?badge=latest
+    :alt: Documentation Status
+
+.. |downloads| image:: https://static.pepy.tech/badge/webvtt-py
+    :target: https://pepy.tech/project/webvtt-py
+    :alt: Downloads
