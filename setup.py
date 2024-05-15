@@ -18,6 +18,7 @@ setup(
     version=version,
     description='WebVTT reader, writer and segmenter',
     long_description=pathlib.Path('README.rst').read_text(),
+    long_description_content_type='text/x-rst',
     author=author,
     author_email=author_email,
     url='https://github.com/glut23/webvtt-py',
