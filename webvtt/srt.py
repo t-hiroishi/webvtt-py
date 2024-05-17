@@ -142,7 +142,7 @@ def write(
             '{} --> {}'.format(*map(lambda x: x.replace('.', ','),
                                     (caption.start, caption.end))
                                ),
-            *caption.lines,
+            *caption.text.splitlines(),
             ''
             ])
     f.write('\n'.join(output).rstrip())
