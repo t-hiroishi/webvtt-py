@@ -4,7 +4,7 @@ History
 0.5.1 [Unreleased]
 ------------------
 
-* Fixed save SRT to not include cue tags
+* Fixed save SRT to not include cue tags, thanks to `@lilaboc <https://github.com/lilaboc>`_ (#56)
 
 0.5.0 (15-05-2024)
 ------------------
