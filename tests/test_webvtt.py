@@ -108,6 +108,30 @@ class TestWebVTT(unittest.TestCase):
             ''').strip()
             )
 
+    def test_write_captions_in_srt_no_cuetags(self):
+        """https://github.com/glut23/webvtt-py/issues/56"""
+        out = io.StringIO()
+        vtt = webvtt.read(PATH_TO_SAMPLES / 'cue_tags.vtt')
+        vtt.write(out, format='srt')
+
+        out.seek(0)
+        self.assertEqual(
+            out.read(),
+            textwrap.dedent('''
+            1
+            00:00:16,500 --> 00:00:18,500
+            When the moon hits your eye
+
+            2
+            00:00:18,500 --> 00:00:20,500
+            Like a big-a pizza pie
+
+            3
+            00:00:20,500 --> 00:00:21,500
+            That's amore
+            ''').strip()
+            )
+
     def test_write_captions_in_unsupported_format(self):
         self.assertRaises(
             ValueError,

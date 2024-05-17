@@ -1,6 +1,11 @@
 History
 =======
 
+0.5.1 [Unreleased]
+------------------
+
+* Fixed save SRT to not include cue tags
+
 0.5.0 (15-05-2024)
 ------------------
 
