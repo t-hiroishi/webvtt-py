@@ -403,6 +403,50 @@ class TestCaption(unittest.TestCase):
             '01:00'
             )
 
+    def test_voice_span(self):
+        caption = Caption(text='<v Homer Simpson>Hello there!</v>')
+        self.assertEqual(caption.text, 'Hello there!')
+        self.assertEqual(caption.raw_text, '<v Homer Simpson>Hello there!</v>')
+        self.assertEqual(caption.voice, 'Homer Simpson')
+
+    def test_voice_span_with_classes(self):
+        caption = Caption(text='<v.quiet.slow Lisa Simpson>I am Lisa</v>')
+        self.assertEqual(caption.text, 'I am Lisa')
+        self.assertEqual(
+            caption.raw_text,
+            '<v.quiet.slow Lisa Simpson>I am Lisa</v>'
+            )
+        self.assertEqual(caption.voice, 'Lisa Simpson')
+
+    def test_voice_span_is_invalid(self):
+        caption = Caption(text='<v Lets eat donuts')
+        self.assertEqual(caption.text, '<v Lets eat donuts')
+        self.assertEqual(
+            caption.raw_text,
+            '<v Lets eat donuts'
+            )
+        self.assertIsNone(caption.voice)
+
+    def test_voice_span_injected(self):
+        caption = Caption(text='This is a test')
+        self.assertEqual(caption.text, 'This is a test')
+        self.assertEqual(caption.raw_text, 'This is a test')
+        self.assertIsNone(caption.voice)
+        caption.text = '<v Homer Simpson>I like tests</v>'
+        self.assertEqual(caption.text, 'I like tests')
+        self.assertEqual(caption.raw_text, '<v Homer Simpson>I like tests</v>')
+        self.assertEqual(caption.voice, 'Homer Simpson')
+
+    def test_voice_span_removed(self):
+        caption = Caption(text='<v Homer Simpson>I like tests</v>')
+        self.assertEqual(caption.text, 'I like tests')
+        self.assertEqual(caption.raw_text, '<v Homer Simpson>I like tests</v>')
+        self.assertEqual(caption.voice, 'Homer Simpson')
+        caption.text = 'This is a test'
+        self.assertEqual(caption.text, 'This is a test')
+        self.assertEqual(caption.raw_text, 'This is a test')
+        self.assertIsNone(caption.voice)
+
 
 class TestStyle(unittest.TestCase):
 
