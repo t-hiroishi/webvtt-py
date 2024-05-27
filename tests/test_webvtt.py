@@ -78,7 +78,7 @@ class TestWebVTT(unittest.TestCase):
                 00:00:07.000 --> 00:00:11.890
                 New caption text line1
                 New caption text line2
-            ''').strip()
+            ''').strip() + '\n'
             )
 
     def test_write_captions_in_srt(self):
@@ -167,7 +167,7 @@ class TestWebVTT(unittest.TestCase):
                     00:00:07.000 --> 00:00:11.890
                     New caption text line1
                     New caption text line2
-                    ''').strip()
+                    ''').strip() + '\n'
                 )
 
     def test_srt_conversion(self):
@@ -189,7 +189,7 @@ class TestWebVTT(unittest.TestCase):
 
                     00:00:00.500 --> 00:00:07.000
                     Caption text #1
-                    ''').strip()
+                    ''').strip() + '\n'
                 )
 
     def test_sbv_conversion(self):
@@ -217,7 +217,7 @@ class TestWebVTT(unittest.TestCase):
                     00:00:11.378 --> 00:00:12.305
                     Caption text #2 (line 1)
                     Caption text #2 (line 2)
-                    ''').strip()
+                    ''').strip() + '\n'
                 )
 
     def test_save_to_other_location(self):
@@ -453,7 +453,7 @@ class TestWebVTT(unittest.TestCase):
                     00:00:08.000 --> 00:00:15.000
                     Caption test line 3
                     Caption test line 4
-                    """).strip()
+                    """).strip() + '\n'
             )
 
     def test_repr(self):
@@ -1088,7 +1088,7 @@ class TestParseSBV(unittest.TestCase):
 
                     00:00:00.500 --> 00:00:07.000
                     Caption text #1
-                    ''').strip()
+                    ''').strip() + '\n'
                 )
 
     def test_save_file_with_bom_keeps_bom(self):
@@ -1112,7 +1112,7 @@ class TestParseSBV(unittest.TestCase):
 
                     00:00:16.320 --> 00:00:21.580
                     Caption text #4
-                    ''').strip()
+                    ''').strip() + '\n'
                 )
 
     def test_save_file_with_bom_removes_bom_if_requested(self):
@@ -1136,7 +1136,7 @@ class TestParseSBV(unittest.TestCase):
 
                     00:00:16.320 --> 00:00:21.580
                     Caption text #4
-                    ''').strip()
+                    ''').strip() + '\n'
                 )
 
     def test_save_file_with_encoding(self):
@@ -1153,7 +1153,7 @@ class TestParseSBV(unittest.TestCase):
 
                     00:00:00.500 --> 00:00:07.000
                     Caption text #1
-                    ''').strip()
+                    ''').strip() + '\n'
                 )
 
     def test_save_file_with_encoding_and_bom(self):
@@ -1171,7 +1171,7 @@ class TestParseSBV(unittest.TestCase):
 
                     00:00:00.500 --> 00:00:07.000
                     Caption text #1
-                    ''').strip()
+                    ''').strip() + '\n'
                 )
 
     def test_save_new_file_utf_8_default_encoding_no_bom(self):
@@ -1192,7 +1192,7 @@ class TestParseSBV(unittest.TestCase):
 
                     00:00:00.500 --> 00:00:07.000
                     Caption text #1
-                    ''').strip()
+                    ''').strip() + '\n'
                 )
 
     def test_save_new_file_utf_8_default_encoding_with_bom(self):
@@ -1215,7 +1215,7 @@ class TestParseSBV(unittest.TestCase):
 
                     00:00:00.500 --> 00:00:07.000
                     Caption text #1
-                    ''').strip()
+                    ''').strip() + '\n'
                 )
 
     def test_iter_slice(self):
