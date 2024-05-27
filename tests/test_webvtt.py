@@ -860,6 +860,61 @@ class TestWebVTT(unittest.TestCase):
             vtt.captions[2].text
             )
 
+    def test_parse_voice_spans(self):
+        vtt = webvtt.from_string(textwrap.dedent("""
+            WEBVTT
+
+            00:00:00.000 --> 00:00:00.800
+            <v.quiet.slow Lisa Simpson>Knock knock</v>
+
+            00:00:02.100 --> 00:00:06.500
+            <v Homer Simpson>Who's there?</v>
+
+            00:00:10.530 --> 00:00:11.090
+            <v.loud Lisa Simpson>Atish</v>
+            """).strip()
+            )
+        self.assertEqual(len(vtt), 3)
+        self.assertEqual(
+            str(vtt[0]),
+            '00:00:00.000 00:00:00.800 Knock knock'
+            )
+        self.assertEqual(
+            vtt[0].voice,
+            'Lisa Simpson'
+            )
+        self.assertEqual(
+            str(vtt[1]),
+            '00:00:02.100 00:00:06.500 Who\'s there?'
+            )
+        self.assertEqual(
+            vtt[1].voice,
+            'Homer Simpson'
+            )
+        self.assertEqual(
+            str(vtt[2]),
+            '00:00:10.530 00:00:11.090 Atish'
+            )
+        self.assertEqual(
+            vtt[2].voice,
+            'Lisa Simpson'
+            )
+
+    def test_parse_caption_not_a_voice_span(self):
+        vtt = webvtt.from_string(textwrap.dedent("""
+            WEBVTT
+
+            00:00:00.000 --> 00:00:00.800
+            <v Not an actual voice span here
+            """).strip()
+            )
+        self.assertEqual(len(vtt), 1)
+        self.assertEqual(
+            str(vtt[0]),
+            '00:00:00.000 00:00:00.800 <v Not an actual voice span here'
+            )
+        self.assertIsNone(vtt[0].voice)
+
 
 class TestParseSRT(unittest.TestCase):
 

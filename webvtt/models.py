@@ -100,6 +100,7 @@ class Caption:
     """Representation of a caption."""
 
     CUE_TEXT_TAGS = re.compile('<.*?>')
+    VOICE_SPAN_PATTERN = re.compile(r'<v(?:\.\w+)*\s+([^>]+)>')
 
     def __init__(self,
                  start: typing.Optional[str] = None,
@@ -203,6 +204,16 @@ class Caption:
                 )
 
         self.lines = value.splitlines()
+
+    @property
+    def voice(self) -> typing.Optional[str]:
+        """Return the voice span if present."""
+        if self.lines and self.lines[0].startswith('<v'):
+            match = re.match(self.VOICE_SPAN_PATTERN, self.lines[0])
+            if match:
+                return match.group(1)
+
+        return None
 
 
 class Style:
