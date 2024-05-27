@@ -391,6 +391,9 @@ def to_str(
             ])
         output.extend(WebVTTCueBlock.format_lines(caption))
 
+    if not footer_comments:
+        output.append('')
+
     for comment in footer_comments:
         output.extend([
             '',
