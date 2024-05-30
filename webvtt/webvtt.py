@@ -1,8 +1,10 @@
 """WebVTT module."""
 
 import os
+import io
 import typing
 import warnings
+from functools import partial
 
 from . import vtt, utils
 from . import srt
@@ -115,7 +117,8 @@ class WebVTT:
     @classmethod
     def from_buffer(
             cls,
-            buffer: typing.Iterator[str]
+            buffer: typing.Union[typing.Iterable[str], io.BytesIO],
+            format: str = 'vtt'
             ) -> 'WebVTT':
         """
         Read WebVTT captions from a file-like object.
@@ -124,17 +127,35 @@ class WebVTT:
         io.StringIO object, tempfile.TemporaryFile object, etc.
 
         :param buffer: the file-like object to read captions from
+        :param format: the format of the data (vtt, srt or sbv)
         :returns: a `WebVTT` instance
         """
-        output = vtt.parse(cls._get_lines(buffer))
+        if isinstance(buffer, io.BytesIO):
+            buffer = (line.decode('utf-8') for line in buffer)
 
-        return cls(
-            file=getattr(buffer, 'name', None),
-            captions=output.captions,
-            styles=output.styles,
-            header_comments=output.header_comments,
-            footer_comments=output.footer_comments
-            )
+        _cls = partial(cls, file=getattr(buffer, 'name', None))
+
+        if format == 'vtt':
+            output = vtt.parse(cls._get_lines(buffer))
+
+            return _cls(
+                captions=output.captions,
+                styles=output.styles,
+                header_comments=output.header_comments,
+                footer_comments=output.footer_comments
+                )
+
+        if format == 'srt':
+            return _cls(
+                captions=srt.parse(cls._get_lines(buffer))
+                )
+
+        if format == 'sbv':
+            return _cls(
+                captions=sbv.parse(cls._get_lines(buffer))
+                )
+
+        raise ValueError(f'Format {format} is not supported.')
 
     @classmethod
     def from_srt(

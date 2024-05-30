@@ -13,6 +13,7 @@ Reading WebVTT caption files
         print(caption.start)  # start timestamp in text format
         print(caption.end)  # end timestamp in text format
         print(caption.text)  # caption text
+        print(caption.voice)  # voice span if present
 
     # you can also iterate over the lines of a particular caption
     for line in vtt[0].lines:
@@ -47,6 +48,40 @@ Reading WebVTT caption files from a file-like object
         print(caption.end)
         print(caption.text)
 
+
+Reading WebVTT caption files from a BytesIO object
+--------------------------------------------------
+
+.. code-block:: python
+
+    import webvtt
+    from io import BytesIO
+
+    with open('captions.vtt', 'rb') as f:
+        buffer = BytesIO(f.read())
+
+    for caption in webvtt.from_buffer(buffer):
+        print(caption.start)
+        print(caption.end)
+        print(caption.text)
+
+
+Reading caption files in other formats from a BytesIO object
+------------------------------------------------------------
+
+.. code-block:: python
+
+    import webvtt
+    from io import BytesIO
+
+    with open('captions.srt', 'rb') as f:
+        buffer = BytesIO(f.read())
+
+    # formats supported: vtt, srt, sbv
+    for caption in webvtt.from_buffer(buffer, format='srt'):
+        print(caption.start)
+        print(caption.end)
+        print(caption.text)
 
 Reading WebVTT captions from a string
 -------------------------------------

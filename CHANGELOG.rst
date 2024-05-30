@@ -4,7 +4,10 @@ History
 0.5.1 [Unreleased]
 ------------------
 
+* Added voice span support (#55)
+* Extended from_buffer support to allow BytesIO and also other format conversions (#32)
 * Fixed save SRT to not include cue tags, thanks to `@lilaboc <https://github.com/lilaboc>`_ (#56)
+* Fixed saved caption to include a line break after the last caption as per standard (#49)
 
 0.5.0 (15-05-2024)
 ------------------

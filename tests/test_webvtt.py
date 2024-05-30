@@ -256,10 +256,29 @@ class TestWebVTT(unittest.TestCase):
 
     def test_from_buffer(self):
         with open(PATH_TO_SAMPLES / 'sample.vtt', 'r', encoding='utf-8') as f:
-            self.assertIsInstance(
-                webvtt.from_buffer(f).captions,
-                list
-                )
+            vtt = webvtt.from_buffer(f)
+            self.assertEqual(len(vtt), 16)
+            self.assertEqual(
+                str(vtt),
+                textwrap.dedent('''
+                    00:00:00.500 00:00:07.000 Caption text #1
+                    00:00:07.000 00:00:11.890 Caption text #2
+                    00:00:11.890 00:00:16.320 Caption text #3
+                    00:00:16.320 00:00:21.580 Caption text #4
+                    00:00:21.580 00:00:23.880 Caption text #5
+                    00:00:23.880 00:00:27.280 Caption text #6
+                    00:00:27.280 00:00:30.280 Caption text #7
+                    00:00:30.280 00:00:36.510 Caption text #8
+                    00:00:36.510 00:00:38.870 Caption text #9
+                    00:00:38.870 00:00:45.000 Caption text #10
+                    00:00:45.000 00:00:47.000 Caption text #11
+                    00:00:47.000 00:00:50.970 Caption text #12
+                    00:00:50.970 00:00:54.440 Caption text #13
+                    00:00:54.440 00:00:58.600 Caption text #14
+                    00:00:58.600 00:01:01.350 Caption text #15
+                    00:01:01.350 00:01:04.300 Caption text #16
+                    '''
+                    ).strip())
 
     def test_deprecated_read_buffer(self):
         with open(PATH_TO_SAMPLES / 'sample.vtt', 'r', encoding='utf-8') as f:
@@ -310,6 +329,134 @@ class TestWebVTT(unittest.TestCase):
             buffer = io.StringIO(payload)
             with self.assertRaises(MalformedFileError):
                 webvtt.from_buffer(buffer)
+
+    def test_read_buffer_for_vtt_content(self):
+        buffer = io.StringIO(textwrap.dedent('''\
+            WEBVTT\r
+            \r
+            00:00:00.500 --> 00:00:07.000\r
+            Caption text #1\r
+            \r
+            00:00:07.000 --> 00:00:11.890\r
+            Caption text #2\r
+            \r
+            00:00:11.890 --> 00:00:16.320\r
+            Caption text #3\r
+            ''')
+            )
+        vtt = webvtt.from_buffer(buffer, format='vtt')
+        self.assertEqual(len(vtt), 3)
+
+        self.assertEqual(
+            str(vtt[0]),
+            '00:00:00.500 00:00:07.000 Caption text #1'
+            )
+        self.assertEqual(
+            str(vtt[1]),
+            '00:00:07.000 00:00:11.890 Caption text #2'
+            )
+        self.assertEqual(
+            str(vtt[2]),
+            '00:00:11.890 00:00:16.320 Caption text #3'
+            )
+
+    def test_read_buffer_for_srt_content(self):
+        buffer = io.StringIO(textwrap.dedent('''\
+            0\r
+            00:00:00,500 --> 00:00:07,000\r
+            Caption text #1\r
+            \r
+            1\r
+            00:00:07,000 --> 00:00:11,890\r
+            Caption text #2\r
+            \r
+            2\r
+            00:00:11,890 --> 00:00:16,320\r
+            Caption text #3\r
+            ''')
+            )
+        vtt = webvtt.from_buffer(buffer, format='srt')
+        self.assertEqual(len(vtt), 3)
+
+        self.assertEqual(
+            str(vtt[0]),
+            '00:00:00.500 00:00:07.000 Caption text #1'
+            )
+        self.assertEqual(
+            str(vtt[1]),
+            '00:00:07.000 00:00:11.890 Caption text #2'
+            )
+        self.assertEqual(
+            str(vtt[2]),
+            '00:00:11.890 00:00:16.320 Caption text #3'
+            )
+
+    def test_read_buffer_for_sbv_content(self):
+        buffer = io.StringIO(textwrap.dedent('''\
+            00:00:00.500,00:00:07.000\r
+            Caption text #1\r
+            \r
+            00:00:07.000,00:00:11.890\r
+            Caption text #2\r
+            \r
+            00:00:11.890,00:00:16.320\r
+            Caption text #3\r
+            ''')
+            )
+        vtt = webvtt.from_buffer(buffer, format='sbv')
+        self.assertEqual(len(vtt), 3)
+
+        self.assertEqual(
+            str(vtt[0]),
+            '00:00:00.500 00:00:07.000 Caption text #1'
+            )
+        self.assertEqual(
+            str(vtt[1]),
+            '00:00:07.000 00:00:11.890 Caption text #2'
+            )
+        self.assertEqual(
+            str(vtt[2]),
+            '00:00:11.890 00:00:16.320 Caption text #3'
+            )
+
+    def test_read_buffer_unsupported_format(self):
+        self.assertRaises(
+            ValueError,
+            webvtt.from_buffer,
+            io.StringIO(),
+            format='ttt'
+            )
+
+    def test_read_bytesio_buffer_for_srt_content(self):
+        buffer = io.BytesIO(textwrap.dedent('''\
+            0\r
+            00:00:00,500 --> 00:00:07,000\r
+            Caption text #1\r
+            \r
+            1\r
+            00:00:07,000 --> 00:00:11,890\r
+            Caption text #2\r
+            \r
+            2\r
+            00:00:11,890 --> 00:00:16,320\r
+            Caption text #3\r
+            ''').encode('utf-8')
+            )
+        vtt = webvtt.from_buffer(buffer, format='srt')
+        self.assertEqual(len(vtt), 3)
+
+        self.assertEqual(
+            str(vtt[0]),
+            '00:00:00.500 00:00:07.000 Caption text #1'
+            )
+        self.assertEqual(
+            str(vtt[1]),
+            '00:00:07.000 00:00:11.890 Caption text #2'
+            )
+        self.assertEqual(
+            str(vtt[2]),
+            '00:00:11.890 00:00:16.320 Caption text #3'
+            )
 
     def test_captions(self):
         captions = webvtt.read(PATH_TO_SAMPLES / 'sample.vtt').captions
