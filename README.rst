@@ -3,12 +3,12 @@ webvtt-py
 
 |pypi| |pyversions| |license| |coverage| |build-status| |docs-status| |downloads|
 
-``webvtt-py`` is a Python module for reading/writing WebVTT_ caption files. It also features caption segmentation useful when captioning `HLS videos`_.
+``webvtt-py`` is a Python library for reading, writing and converting WebVTT_ caption files. It also features caption segmentation useful when captioning `HLS videos`_.
 
 Documentation is available at http://webvtt-py.readthedocs.io.
 
-.. _`WebVTT`: http://dev.w3.org/html5/webvtt/
-.. _`HLS videos`: https://tools.ietf.org/html/draft-pantos-http-live-streaming-19
+.. _`WebVTT`: https://www.w3.org/TR/webvtt1/
+.. _`HLS videos`: https://datatracker.ietf.org/doc/html/draft-pantos-hls-rfc8216bis
 
 Installation
 ------------
@@ -25,9 +25,11 @@ Usage
   import webvtt
 
   for caption in webvtt.read('captions.vtt'):
-      print(caption.start)
-      print(caption.end)
-      print(caption.text)
+      print(caption.identifier)  # cue identifier if any
+      print(caption.start)       # cue start time
+      print(caption.end)         # cue end time
+      print(caption.text)        # cue payload
+      print(caption.voice)       # cue voice span if any
 
 Segmenting for HLS
 ------------------
@@ -53,7 +55,7 @@ Supported formats:
   webvtt = webvtt.from_srt('captions.srt')
   webvtt.save()
 
-  # one liner if we just need to convert without editing
+  # alternatively in a single line
   webvtt.from_sbv('captions.sbv').save()
 
 CLI
